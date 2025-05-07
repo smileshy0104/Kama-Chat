@@ -1,39 +1,39 @@
-mainConfig:
-    appName: "kama_chat"
+main_config:
+    app_name: "kama_chat"
     host: "0.0.0.0"
     port: 8000
   
-mysqlConfig:
+mysql_config:
     host: "127.0.0.1"
     port: 3306
     user: "root"
     password: "123456"
-    databaseName: "kama_chat"
+    database_name: "kama_chat"
   
-redisConfig:
+redis_config:
     host: "127.0.0.1"
     port: 6379
     password: ""
     db: 0
   
-authCodeConfig:
-    accessKeyID: "your accessKeyID in alibaba cloud"
-    accessKeySecret: "your accessKeySecret in alibaba cloud"
-    signName: "阿里云短信测试"
-    templateCode: "SMS_154950909"
+auth_code_config:
+    access_key_id: "your accessKeyID in alibaba cloud"
+    access_key_secret: "your accessKeySecret in alibaba cloud"
+    sign_name: "阿里云短信测试"
+    template_code: "SMS_154950909"
   
-logConfig:
-    logPath: "./logs"
+log_config:
+    log_path: "./logs"
   
-kafkaConfig:
-    messageMode: "channel"# 消息模式 channel or kafka
-    hostPort: "127.0.0.1:9092" # "127.0.0.1:9092,127.0.0.1:9093,127.0.0.1:9094" 多个kafka服务器
-    loginTopic: "login"
-    chatTopic: "chat_message"
-    logoutTopic: "logout"
+kafka_config:
+    message_mode: "channel"# 消息模式 channel or kafka
+    host_port: "127.0.0.1:9092" # "127.0.0.1:9092,127.0.0.1:9093,127.0.0.1:9094" 多个kafka服务器
+    login_topic: "login"
+    chat_topic: "chat_message"
+    logout_topic: "logout"
     partition: 0 # kafka partition
     timeout: 1 # 单位秒
   
-staticSrcConfig:
-    staticAvatarPath: "./static/avatars"
-    staticFilePath: "./static/files"
+static_src_config:
+    static_avatar_path: "./static/avatars"
+    static_file_path: "./static/files"
