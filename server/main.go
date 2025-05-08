@@ -5,6 +5,7 @@ import (
 	"Kama-Chat/global"
 	"Kama-Chat/initialize/dao"
 	"Kama-Chat/initialize/zlog"
+	"Kama-Chat/lib/kafka"
 	"Kama-Chat/lib/redis"
 	"Kama-Chat/router"
 	"fmt"
