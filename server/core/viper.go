@@ -10,11 +10,15 @@ import (
 
 func Viper(path ...string) *viper.Viper {
 	var config string
-	config = internal.ConfigDefaultFile
-
+	if len(path) == 0 {
+		config = internal.ConfigDefaultFile // 默认值 "config.yaml"
+	} else {
+		config = path[0]
+	}
 	v := viper.New()
-	v.SetConfigFile(config)
+	v.SetConfigFile(config) // 👈 设置完整路径+文件名
 	v.SetConfigType("yaml")
+
 	err := v.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))

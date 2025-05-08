@@ -1,7 +1,11 @@
 package global
 
-import "Kama-Chat/config"
+import (
+	"Kama-Chat/config"
+	"github.com/spf13/viper"
+)
 
 var (
-	CONFIG *config.Config
+	CONFIG config.Config
+	VIPER  *viper.Viper
 )
