@@ -6,6 +6,6 @@ import (
 )
 
 var (
-	CONFIG *config.Config
+	CONFIG config.Config
 	VIPER  *viper.Viper
 )

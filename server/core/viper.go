@@ -8,6 +8,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Viper 初始化 viper 配置实例。
+// 参数 path 是可选的配置文件路径，如果没有提供，则使用默认路径。
+// 返回值是初始化后的 *viper.Viper 实例。
 func Viper(path ...string) *viper.Viper {
 	var config string
 	if len(path) == 0 {
