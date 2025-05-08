@@ -1,7 +1,7 @@
 package config
 
 type MainConfig struct {
-	AppName string `json:"app_name" yaml:"app_name"`
-	Host    string `json:"host" yaml:"host"`
-	Port    int    `json:"port" yaml:"port"`
+	AppName string `mapstructure:"app_name" json:"app_name" yaml:"app_name"`
+	Host    string `mapstructure:"host" json:"host" yaml:"host"`
+	Port    int    `mapstructure:"port" json:"port" yaml:"port"`
 }
