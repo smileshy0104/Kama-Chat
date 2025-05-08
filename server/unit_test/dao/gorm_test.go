@@ -1,7 +1,9 @@
 package dao
 
 import (
+	"Kama-Chat/initialize/dao"
 	"Kama-Chat/model"
+	"Kama-Chat/utils/random"
 	"strconv"
 	"testing"
 	"time"
