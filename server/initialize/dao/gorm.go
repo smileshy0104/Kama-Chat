@@ -13,20 +13,21 @@ import (
 var GormDB *gorm.DB
 
 // init 函数在程序启动时初始化数据库连接
-func init() {
+func InitMysql() {
 	// 加载全局配置
 	conf := global.CONFIG
 	// 获取MySQL配置中的用户名
 	user := conf.MysqlConfig.User
-	// password := conf.MysqlConfig.Password
-	// host := conf.MysqlConfig.Host
-	// port := conf.MysqlConfig.Port
+	password := conf.MysqlConfig.Password
+	host := conf.MysqlConfig.Host
+	port := conf.MysqlConfig.Port
 	// 获取主配置中的应用名称，用于数据库名称
 	appName := conf.MainConfig.AppName
 	// 构建MySQL的DSN（数据源名称）
-	// dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, port, appName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, port, appName)
+	fmt.Println(dsn)
 	// 使用Unix套接字连接MySQL
-	dsn := fmt.Sprintf("%s@unix(/var/run/mysqld/mysqld.sock)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, appName)
+	//dsn := fmt.Sprintf("%s@unix(/var/run/mysqld/mysqld.sock)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, appName)
 	// 初始化GormDB对象
 	var err error
 	// 使用Gorm库打开数据库连接
