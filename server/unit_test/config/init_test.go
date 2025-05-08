@@ -8,6 +8,7 @@ import (
 )
 
 func TestInit(t *testing.T) {
-	global.VIPER = core.Viper() // 加载配置文件（如 config.yaml）
+	// 加载配置文件（如 config.yaml）
+	global.VIPER = core.Viper()
 	fmt.Println(global.CONFIG.MainConfig)
 }
