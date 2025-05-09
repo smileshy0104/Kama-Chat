@@ -6,7 +6,6 @@ import (
 	"Kama-Chat/service"
 	"Kama-Chat/utils/constants"
 	"Kama-Chat/utils/response"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
