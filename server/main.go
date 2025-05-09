@@ -64,7 +64,7 @@ func main() {
 		Handler: router.Router,
 	}
 	go func() {
-		// service connections
+		// 监听端口并提供服务
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("web服务器 启动失败 : %v\n", err)
 		}
@@ -89,7 +89,7 @@ func main() {
 		done <- struct{}{}
 	}()
 
-	// catching ctx.Done(). timeout of 5 seconds.
+	// 等待超时或者完成
 	select {
 	case <-ctx.Done():
 		fmt.Println("web server shutdown timeout")

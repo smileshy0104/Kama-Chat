@@ -25,7 +25,6 @@ func InitMysql() {
 	appName := conf.MainConfig.AppName
 	// 构建MySQL的DSN（数据源名称）
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, port, appName)
-	fmt.Println(dsn)
 	// 使用Unix套接字连接MySQL
 	//dsn := fmt.Sprintf("%s@unix(/var/run/mysqld/mysqld.sock)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, appName)
 	// 初始化GormDB对象
