@@ -3,6 +3,7 @@ package api
 import (
 	"Kama-Chat/initialize/zlog"
 	"Kama-Chat/model/request"
+	"Kama-Chat/service"
 	"Kama-Chat/utils/constants"
 	"Kama-Chat/utils/response"
 	"fmt"
@@ -10,10 +11,16 @@ import (
 	"net/http"
 )
 
+var UserInfo = &UserInfoController{}
+
+type UserInfoController struct {
+	userInfoSrv *service.UserInfoService
+}
+
 // Register 注册
-func Register(c *gin.Context) {
-	var registerReq request.RegisterRequest
-	if err := c.BindJSON(&registerReq); err != nil {
+func (uic *UserInfoController) Register(c *gin.Context) {
+	registerReq := &request.RegisterRequest{}
+	if err := c.ShouldBindJSON(&registerReq); err != nil {
 		zlog.Error(err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"code":    500,
@@ -21,15 +28,14 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(registerReq)
-	message, userInfo, ret := gorm.UserInfoService.Register(registerReq)
+	message, userInfo, ret := uic.userInfoSrv.Register(registerReq)
 	response.JsonBack(c, message, ret, userInfo)
 }
 
 // Login 登录
-func Login(c *gin.Context) {
-	var loginReq request.LoginRequest
-	if err := c.BindJSON(&loginReq); err != nil {
+func (uic *UserInfoController) Login(c *gin.Context) {
+	loginReq := &request.LoginRequest{}
+	if err := c.ShouldBindJSON(&loginReq); err != nil {
 		zlog.Error(err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"code":    500,
@@ -37,6 +43,6 @@ func Login(c *gin.Context) {
 		})
 		return
 	}
-	message, userInfo, ret := gorm.UserInfoService.Login(loginReq)
+	message, userInfo, ret := uic.userInfoSrv.Login(loginReq)
 	response.JsonBack(c, message, ret, userInfo)
 }
