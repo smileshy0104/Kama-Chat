@@ -2,6 +2,8 @@ package router
 
 import (
 	"Kama-Chat/api"
+	"Kama-Chat/global"
+	"Kama-Chat/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,10 +15,10 @@ func init() {
 	//corsConfig.AllowOrigins = []string{"*"}
 	//corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	//corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
-	//Router.Use(middleware.Cors())
+	Router.Use(middleware.Cors())
 	//Router.Use(ssl.TlsHandler(global.CONFIG.MainConfig.Host, global.CONFIG.MainConfig.Port))
-	//Router.Static("/static/avatars", global.CONFIG.StaticSrcConfig.StaticAvatarPath)
-	//Router.Static("/static/files", global.CONFIG.StaticSrcConfig.StaticFilePath)
+	Router.Static("/static/avatars", global.CONFIG.StaticSrcConfig.StaticAvatarPath)
+	Router.Static("/static/files", global.CONFIG.StaticSrcConfig.StaticFilePath)
 	Router.POST("/register", api.UserInfo.Register)
 	Router.POST("/login", api.UserInfo.Login)
 	//Router.POST("/user/updateUserInfo", api.UpdateUserInfo)
