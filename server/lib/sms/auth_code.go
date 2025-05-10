@@ -59,7 +59,7 @@ func VerificationCode(telephone string) (string, int) {
 	// 验证码过期，重新生成
 	code = strconv.Itoa(random.GetRandomInt(6))
 	fmt.Println(code)
-	err = redis.SetKeyEx(key, code, time.Minute) // 1分钟有效
+	err = redis.SetKeyEx(key, code, time.Hour*24) // 1分钟有效
 	if err != nil {
 		zlog.Error(err.Error())
 		return constants.SYSTEM_ERROR, -1
