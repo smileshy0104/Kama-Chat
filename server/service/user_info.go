@@ -22,6 +22,7 @@ type UserInfoService struct {
 	Ctx *gin.Context
 }
 
+// Register 注册
 func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *respond.RegisterRespond, int) {
 	key := "auth_code_" + req.Telephone
 	code, err := redis.GetKey(key)
@@ -89,10 +90,10 @@ func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *res
 }
 
 // Login 登录
-func (uis *UserInfoService) Login(loginReq *request.LoginRequest) (string, *respond.LoginRespond, int) {
-	password := loginReq.Password
+func (uis *UserInfoService) Login(req *request.LoginRequest) (string, *respond.LoginRespond, int) {
+	password := req.Password
 	var user model.UserInfo
-	res := dao.GormDB.First(&user, "telephone = ?", loginReq.Telephone)
+	res := dao.GormDB.First(&user, "telephone = ?", req.Telephone)
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 			message := "用户不存在，请注册"
@@ -124,4 +125,67 @@ func (uis *UserInfoService) Login(loginReq *request.LoginRequest) (string, *resp
 	loginRsp.CreatedAt = fmt.Sprintf("%d.%d.%d", year, month, day)
 
 	return "登陆成功", loginRsp, 0
+}
+
+// UpdateUserInfo 修改用户信息
+// 某用户修改了信息，可能会影响contact_user_list，不需要删除redis的contact_user_list，timeout之后会自己更新
+// 但是需要更新redis的user_info，因为可能影响用户搜索
+func (uis *UserInfoService) UpdateUserInfo(req *request.UpdateUserInfoRequest) (string, int) {
+	var user model.UserInfo
+	if res := dao.GormDB.First(&user, "uuid = ?", req.Uuid); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	if req.Email != "" {
+		user.Email = req.Email
+	}
+	if req.Nickname != "" {
+		user.Nickname = req.Nickname
+	}
+	if req.Birthday != "" {
+		user.Birthday = req.Birthday
+	}
+	if req.Signature != "" {
+		user.Signature = req.Signature
+	}
+	if req.Avatar != "" {
+		user.Avatar = req.Avatar
+	}
+	if res := dao.GormDB.Save(&user); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	//if err := myredis.DelKeysWithPattern("user_info_" + updateReq.Uuid); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	return "修改用户信息成功", 0
+}
+
+// GetUserInfoList 获取用户列表除了ownerId之外 - 管理员
+// 管理员少，而且如果用户更改了，那么管理员会一直频繁删除redis，更新redis，比较麻烦，所以管理员暂时不使用redis缓存
+func (uis *UserInfoService) GetUserInfoList(req *request.GetUserInfoListRequest) (string, []respond.GetUserListRespond, int) {
+	// redis中没有数据，从数据库中获取
+	var users []model.UserInfo
+	// 获取所有的用户
+	if res := dao.GormDB.Unscoped().Where("uuid != ?", req.OwnerId).Find(&users); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, nil, -1
+	}
+	var rsp []respond.GetUserListRespond
+	for _, user := range users {
+		rp := respond.GetUserListRespond{
+			Uuid:      user.Uuid,
+			Telephone: user.Telephone,
+			Nickname:  user.Nickname,
+			Status:    user.Status,
+			IsAdmin:   user.IsAdmin,
+		}
+		if user.DeletedAt.Valid {
+			rp.IsDeleted = true
+		} else {
+			rp.IsDeleted = false
+		}
+		rsp = append(rsp, rp)
+	}
+	return "获取用户列表成功", rsp, 0
 }
