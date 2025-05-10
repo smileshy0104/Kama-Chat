@@ -383,3 +383,20 @@ func (uis *UserInfoService) DeleteUsers(req *request.AbleUsersRequest) (string, 
 	//}
 	return "删除用户成功", 0
 }
+
+// SetAdmin 设置管理员
+func (uis *UserInfoService) SetAdmin(req *request.AbleUsersRequest) (string, int) {
+	var users []model.UserInfo
+	if res := dao.GormDB.Where("uuid = (?)", req.UuidList).Find(&users); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	for _, user := range users {
+		user.IsAdmin = req.IsAdmin
+		if res := dao.GormDB.Save(&user); res.Error != nil {
+			zlog.Error(res.Error.Error())
+			return constants.SYSTEM_ERROR, -1
+		}
+	}
+	return "设置管理员成功", 0
+}

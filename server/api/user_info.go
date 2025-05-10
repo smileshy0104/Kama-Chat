@@ -135,3 +135,18 @@ func (uic *UserInfoController) DeleteUsers(c *gin.Context) {
 	message, ret := uic.userInfoSrv.DeleteUsers(req)
 	response.JsonBack(c, message, ret, nil)
 }
+
+// SetAdmin 设置管理员
+func (uic *UserInfoController) SetAdmin(c *gin.Context) {
+	req := &request.AbleUsersRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := uic.userInfoSrv.SetAdmin(req)
+	response.JsonBack(c, message, ret, nil)
+}
