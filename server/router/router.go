@@ -45,10 +45,10 @@ func init() {
 		groupGp.POST("/get_group_info", api.GroupInfo.GetGroupInfo)
 		groupGp.POST("/get_group_info_list", api.GroupInfo.GetGroupInfoList)
 		groupGp.POST("/delete_groups", api.GroupInfo.DeleteGroups)
-		//groupGp.POST("/setGroupsStatus", api.SetGroupsStatus)
-		//groupGp.POST("/updateGroupInfo", api.UpdateGroupInfo)
-		//groupGp.POST("/getGroupMemberList", api.GetGroupMemberList)
-		//groupGp.POST("/removeGroupMembers", api.RemoveGroupMembers)
+		groupGp.POST("/setGroupsStatus", api.GroupInfo.SetGroupsStatus)
+		groupGp.POST("/updateGroupInfo", api.GroupInfo.UpdateGroupInfo)
+		groupGp.POST("/getGroupMemberList", api.GroupInfo.GetGroupMemberList)
+		groupGp.POST("/removeGroupMembers", api.GroupInfo.RemoveGroupMembers)
 	}
 	//
 	//sessionGp := Router.Group("/session")

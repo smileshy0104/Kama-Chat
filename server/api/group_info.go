@@ -141,3 +141,63 @@ func (gic *GroupInfoController) DeleteGroups(c *gin.Context) {
 	message, ret := gic.groupInfoSrv.DeleteGroups(req)
 	response.JsonBack(c, message, ret, nil)
 }
+
+// SetGroupsStatus 设置群聊是否启用
+func (gic *GroupInfoController) SetGroupsStatus(c *gin.Context) {
+	req := &request.SetGroupsStatusRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := gic.groupInfoSrv.SetGroupsStatus(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// UpdateGroupInfo 更新群聊消息
+func (gic *GroupInfoController) UpdateGroupInfo(c *gin.Context) {
+	req := &request.UpdateGroupInfoRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := gic.groupInfoSrv.UpdateGroupInfo(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// GetGroupMemberList 获取群聊成员列表
+func (gic *GroupInfoController) GetGroupMemberList(c *gin.Context) {
+	req := &request.GetGroupMemberListRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, groupMemberList, ret := gic.groupInfoSrv.GetGroupMemberList(req)
+	response.JsonBack(c, message, ret, groupMemberList)
+}
+
+// RemoveGroupMembers 移除群聊成员
+func (gic *GroupInfoController) RemoveGroupMembers(c *gin.Context) {
+	req := &request.RemoveGroupMembersRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := gic.groupInfoSrv.RemoveGroupMembers(req)
+	response.JsonBack(c, message, ret, nil)
+}
