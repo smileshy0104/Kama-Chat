@@ -61,3 +61,33 @@ func (ucc *UserContactController) GetContactInfo(c *gin.Context) {
 	message, contactInfo, ret := ucc.userContactSrv.GetContactInfo(req)
 	response.JsonBack(c, message, ret, contactInfo)
 }
+
+// DeleteContact 删除联系人
+func (ucc *UserContactController) DeleteContact(c *gin.Context) {
+	req := &request.DeleteContactRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := ucc.userContactSrv.DeleteContact(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// ApplyContact 申请添加联系人
+func (ucc *UserContactController) ApplyContact(c *gin.Context) {
+	req := &request.ApplyContactRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := ucc.userContactSrv.ApplyContact(req)
+	response.JsonBack(c, message, ret, nil)
+}

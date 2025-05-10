@@ -23,3 +23,11 @@ const (
 	QUIT_GROUP
 	KICK_OUT_GROUP
 )
+
+// contact_apply_status_enum 申请状态
+const (
+	PENDING = iota
+	AGREE
+	REFUSE
+	BLACK_
+)
