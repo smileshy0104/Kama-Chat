@@ -122,6 +122,21 @@ func (ucc *UserContactController) PassContactApply(c *gin.Context) {
 	response.JsonBack(c, message, ret, nil)
 }
 
+// RefuseContactApply 拒绝联系人申请
+func (ucc *UserContactController) RefuseContactApply(c *gin.Context) {
+	req := &request.PassContactApplyRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := ucc.userContactSrv.RefuseContactApply(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
 // BlackContact 拉黑联系人
 func (ucc *UserContactController) BlackContact(c *gin.Context) {
 	req := &request.BlackContactRequest{}
@@ -149,5 +164,35 @@ func (ucc *UserContactController) CancelBlackContact(c *gin.Context) {
 		return
 	}
 	message, ret := ucc.userContactSrv.CancelBlackContact(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// GetAddGroupList 获取新的群聊申请列表
+func (ucc *UserContactController) GetAddGroupList(c *gin.Context) {
+	req := &request.AddGroupListRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, data, ret := ucc.userContactSrv.GetAddGroupList(req)
+	response.JsonBack(c, message, ret, data)
+}
+
+// BlackApply 拉黑申请
+func (ucc *UserContactController) BlackApply(c *gin.Context) {
+	req := &request.BlackApplyRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := ucc.userContactSrv.BlackApply(req)
 	response.JsonBack(c, message, ret, nil)
 }

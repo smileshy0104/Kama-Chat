@@ -282,7 +282,7 @@ func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (s
 			}
 		}
 		// 如果存在申请记录，先看看有没有被拉黑
-		if contactApply.Status == enum.BLACK {
+		if contactApply.Status == enum.BLACK_ {
 			return "对方已将你拉黑", -2
 		}
 		contactApply.LastApplyAt = time.Now()
@@ -594,4 +594,19 @@ func (ucs *UserContactService) GetAddGroupList(req *request.AddGroupListRequest)
 		rsp = append(rsp, newContact)
 	}
 	return "获取成功", rsp, 0
+}
+
+// BlackApply 拉黑申请
+func (ucs *UserContactService) BlackApply(req *request.BlackApplyRequest) (string, int) {
+	var contactApply model.ContactApply
+	if res := dao.GormDB.Where("contact_id = ? AND user_id = ?", req.OwnerId, req.ContactId).First(&contactApply); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	contactApply.Status = enum.BLACK_
+	if res := dao.GormDB.Save(&contactApply); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	return "已拉黑该申请", 0
 }
