@@ -150,3 +150,33 @@ func (uic *UserInfoController) SetAdmin(c *gin.Context) {
 	message, ret := uic.userInfoSrv.SetAdmin(req)
 	response.JsonBack(c, message, ret, nil)
 }
+
+// SmsLogin 验证码登录
+func (uic *UserInfoController) SmsLogin(c *gin.Context) {
+	req := &request.SmsLoginRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, userInfo, ret := uic.userInfoSrv.SmsLogin(req)
+	response.JsonBack(c, message, ret, userInfo)
+}
+
+// SendSmsCode 发送短信验证码
+func (uic *UserInfoController) SendSmsCode(c *gin.Context) {
+	req := &request.SendSmsCodeRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := uic.userInfoSrv.SendSmsCode(req)
+	response.JsonBack(c, message, ret, nil)
+}

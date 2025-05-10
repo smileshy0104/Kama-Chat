@@ -4,6 +4,7 @@ import (
 	"Kama-Chat/initialize/dao"
 	"Kama-Chat/initialize/zlog"
 	myredis "Kama-Chat/lib/redis"
+	"Kama-Chat/lib/sms"
 	"Kama-Chat/model"
 	"Kama-Chat/model/request"
 	"Kama-Chat/model/respond"
@@ -399,4 +400,58 @@ func (uis *UserInfoService) SetAdmin(req *request.AbleUsersRequest) (string, int
 		}
 	}
 	return "设置管理员成功", 0
+}
+
+// SmsLogin 验证码登录
+func (uis *UserInfoService) SmsLogin(req *request.SmsLoginRequest) (string, *respond.LoginRespond, int) {
+	var user model.UserInfo
+	res := dao.GormDB.First(&user, "telephone = ?", req.Telephone)
+	if res.Error != nil {
+		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+			message := "用户不存在，请注册"
+			zlog.Error(message)
+			return message, nil, -2
+		}
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, nil, -1
+	}
+
+	key := "auth_code_" + req.Telephone
+	code, err := myredis.GetKey(key)
+	if err != nil {
+		zlog.Error(err.Error())
+		return constants.SYSTEM_ERROR, nil, -1
+	}
+	if code != req.SmsCode {
+		message := "验证码不正确，请重试"
+		zlog.Info(message)
+		return message, nil, -2
+	} else {
+		if err := myredis.DelKeyIfExists(key); err != nil {
+			zlog.Error(err.Error())
+			return constants.SYSTEM_ERROR, nil, -1
+		}
+	}
+
+	loginRsp := &respond.LoginRespond{
+		Uuid:      user.Uuid,
+		Telephone: user.Telephone,
+		Nickname:  user.Nickname,
+		Email:     user.Email,
+		Avatar:    user.Avatar,
+		Gender:    user.Gender,
+		Birthday:  user.Birthday,
+		Signature: user.Signature,
+		IsAdmin:   user.IsAdmin,
+		Status:    user.Status,
+	}
+	year, month, day := user.CreatedAt.Date()
+	loginRsp.CreatedAt = fmt.Sprintf("%d.%d.%d", year, month, day)
+
+	return "登陆成功", loginRsp, 0
+}
+
+// SendSmsCode 发送短信验证码 - 验证码登录
+func (uis *UserInfoService) SendSmsCode(req *request.SendSmsCodeRequest) (string, int) {
+	return sms.VerificationCode(req.Telephone)
 }
