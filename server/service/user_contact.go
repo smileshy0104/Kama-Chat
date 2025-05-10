@@ -22,17 +22,28 @@ type UserContactService struct {
 	Ctx *gin.Context
 }
 
-// GetUserList 获取用户列表
-// 关于用户被禁用的问题，这里查到的是所有联系人，如果被禁用或被拉黑会以弹窗的形式提醒，无法打开会话框；如果被删除，是搜索不到该联系人的。
+// GetUserList 获取用户联系人列表
+// 该方法根据用户ID获取其联系人列表，首先尝试从Redis缓存中获取数据，
+// 如果缓存不存在，则从数据库中查询并更新缓存。
+// 参数:
+//
+//	req *request.OwnlistRequest - 包含请求信息的数据结构，主要为OwnerID
+//
+// 返回值:
+//
+//	string - 操作结果信息
+//	[]respond.MyUserListRespond - 用户列表响应数据结构切片
+//	int - 错误代码，0表示成功，-1表示系统错误
 func (ucs *UserContactService) GetUserList(req *request.OwnlistRequest) (string, []respond.MyUserListRespond, int) {
+	// 尝试从Redis中获取联系人列表
 	rspString, err := myredis.GetKeyNilIsErr("contact_user_list_" + req.OwnerId)
 	if err != nil {
+		// 如果Redis中不存在数据，检查是否为Nil错误
 		if errors.Is(err, redis.Nil) {
-			// dao
+			// 从数据库中查询联系人列表
 			var contactList []model.UserContact
-			// 没有被删除
 			if res := dao.GormDB.Order("created_at DESC").Where("user_id = ? AND status != 4", req.OwnerId).Find(&contactList); res.Error != nil {
-				// 不存在不是业务问题，用Info，return 0
+				// 处理查询错误
 				if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 					message := "目前不存在联系人"
 					zlog.Info(message)
@@ -42,15 +53,12 @@ func (ucs *UserContactService) GetUserList(req *request.OwnlistRequest) (string,
 					return constants.SYSTEM_ERROR, nil, -1
 				}
 			}
-			// dto
+			// 将查询结果转换为用户列表响应格式
 			var userListRsp []respond.MyUserListRespond
 			for _, contact := range contactList {
-				// 联系人中是用户的
 				if contact.ContactType == enum.USER {
-					// 获取用户信息
 					var user model.UserInfo
 					if res := dao.GormDB.First(&user, "uuid = ?", contact.ContactId); res.Error != nil {
-						// 肯定是存在的，不可能无缘无故删掉，目前不用加notfound的判断
 						zlog.Error(res.Error.Error())
 						return constants.SYSTEM_ERROR, nil, -1
 					}
@@ -61,6 +69,7 @@ func (ucs *UserContactService) GetUserList(req *request.OwnlistRequest) (string,
 					})
 				}
 			}
+			// 将用户列表序列化并更新到Redis缓存
 			rspString, err := json.Marshal(userListRsp)
 			if err != nil {
 				zlog.Error(err.Error())
@@ -73,6 +82,7 @@ func (ucs *UserContactService) GetUserList(req *request.OwnlistRequest) (string,
 			zlog.Error(err.Error())
 		}
 	}
+	// 从Redis中获取数据并反序列化为用户列表
 	var rsp []respond.MyUserListRespond
 	if err := json.Unmarshal([]byte(rspString), &rsp); err != nil {
 		zlog.Error(err.Error())

@@ -49,7 +49,7 @@ func (ucc *UserContactController) LoadMyJoinedGroup(c *gin.Context) {
 // GetContactInfo 获取联系人信息
 func (ucc *UserContactController) GetContactInfo(c *gin.Context) {
 	req := &request.GetContactInfoRequest{}
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		zlog.Error(err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"code":    500,
