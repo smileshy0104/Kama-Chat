@@ -21,6 +21,8 @@ func init() {
 	Router.Static("/static/files", global.CONFIG.StaticSrcConfig.StaticFilePath)
 	Router.POST("/register", api.UserInfo.Register)
 	Router.POST("/login", api.UserInfo.Login)
+
+	// 用户相关
 	userGp := Router.Group("/user")
 	{
 		userGp.POST("/update_user", api.UserInfo.UpdateUserInfo)
@@ -34,6 +36,7 @@ func init() {
 		userGp.POST("/smsLogin", api.UserInfo.SmsLogin)
 	}
 
+	// 群组相关
 	groupGp := Router.Group("/group")
 	{
 		groupGp.POST("/create_group", api.GroupInfo.CreateGroup)
@@ -45,10 +48,10 @@ func init() {
 		groupGp.POST("/get_group_info", api.GroupInfo.GetGroupInfo)
 		groupGp.POST("/get_group_info_list", api.GroupInfo.GetGroupInfoList)
 		groupGp.POST("/delete_groups", api.GroupInfo.DeleteGroups)
-		groupGp.POST("/setGroupsStatus", api.GroupInfo.SetGroupsStatus)
-		groupGp.POST("/updateGroupInfo", api.GroupInfo.UpdateGroupInfo)
-		groupGp.POST("/getGroupMemberList", api.GroupInfo.GetGroupMemberList)
-		groupGp.POST("/removeGroupMembers", api.GroupInfo.RemoveGroupMembers)
+		groupGp.POST("/set_groups_status", api.GroupInfo.SetGroupsStatus)
+		groupGp.POST("/update_group_info", api.GroupInfo.UpdateGroupInfo)
+		groupGp.POST("/get_group_member_list", api.GroupInfo.GetGroupMemberList)
+		groupGp.POST("/remove_group_members", api.GroupInfo.RemoveGroupMembers)
 	}
 	//
 	//sessionGp := Router.Group("/session")
