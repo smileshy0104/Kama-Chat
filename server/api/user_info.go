@@ -75,3 +75,63 @@ func (uic *UserInfoController) GetUserInfoList(c *gin.Context) {
 	message, userList, ret := uic.userInfoSrv.GetUserInfoList(req)
 	response.JsonBack(c, message, ret, userList)
 }
+
+// AbleUsers 启用用户
+func (uic *UserInfoController) AbleUsers(c *gin.Context) {
+	req := &request.AbleUsersRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := uic.userInfoSrv.AbleUsers(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// DisableUsers 禁用用户
+func (uic *UserInfoController) DisableUsers(c *gin.Context) {
+	req := &request.AbleUsersRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := uic.userInfoSrv.DisableUsers(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// GetUserInfo 获取用户信息
+func (uic *UserInfoController) GetUserInfo(c *gin.Context) {
+	req := &request.GetUserInfoRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, userInfo, ret := uic.userInfoSrv.GetUserInfo(req)
+	response.JsonBack(c, message, ret, userInfo)
+}
+
+// DeleteUsers 删除用户
+func (uic *UserInfoController) DeleteUsers(c *gin.Context) {
+	req := &request.AbleUsersRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := uic.userInfoSrv.DeleteUsers(req)
+	response.JsonBack(c, message, ret, nil)
+}

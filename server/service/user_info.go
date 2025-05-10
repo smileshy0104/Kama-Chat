@@ -3,7 +3,7 @@ package service
 import (
 	"Kama-Chat/initialize/dao"
 	"Kama-Chat/initialize/zlog"
-	"Kama-Chat/lib/redis"
+	myredis "Kama-Chat/lib/redis"
 	"Kama-Chat/model"
 	"Kama-Chat/model/request"
 	"Kama-Chat/model/respond"
@@ -11,9 +11,11 @@ import (
 	"Kama-Chat/utils/enum"
 	"Kama-Chat/utils/random"
 	"Kama-Chat/utils/validate"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 	"time"
 )
@@ -25,7 +27,7 @@ type UserInfoService struct {
 // Register 注册
 func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *respond.RegisterRespond, int) {
 	key := "auth_code_" + req.Telephone
-	code, err := redis.GetKey(key)
+	code, err := myredis.GetKey(key)
 	if err != nil {
 		zlog.Error(err.Error())
 		return constants.SYSTEM_ERROR, nil, -1
@@ -35,7 +37,7 @@ func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *res
 		zlog.Info(message)
 		return message, nil, -2
 	} else {
-		if err := redis.DelKeyIfExists(key); err != nil {
+		if err := myredis.DelKeyIfExists(key); err != nil {
 			zlog.Error(err.Error())
 			return constants.SYSTEM_ERROR, nil, -1
 		}
@@ -188,4 +190,196 @@ func (uis *UserInfoService) GetUserInfoList(req *request.GetUserInfoListRequest)
 		rsp = append(rsp, rp)
 	}
 	return "获取用户列表成功", rsp, 0
+}
+
+// GetUserInfo 获取用户信息
+func (uis *UserInfoService) GetUserInfo(req *request.GetUserInfoRequest) (string, *respond.GetUserInfoRespond, int) {
+	// redis
+	zlog.Info(req.Uuid)
+	rspString, err := myredis.GetKeyNilIsErr("user_info_" + req.Uuid)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			zlog.Info(err.Error())
+			var user model.UserInfo
+			if res := dao.GormDB.Where("uuid = ?", req.Uuid).Find(&user); res.Error != nil {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, nil, -1
+			}
+			rsp := respond.GetUserInfoRespond{
+				Uuid:      user.Uuid,
+				Telephone: user.Telephone,
+				Nickname:  user.Nickname,
+				Avatar:    user.Avatar,
+				Birthday:  user.Birthday,
+				Email:     user.Email,
+				Gender:    user.Gender,
+				Signature: user.Signature,
+				CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+				IsAdmin:   user.IsAdmin,
+				Status:    user.Status,
+			}
+			//rspString, err := json.Marshal(rsp)
+			//if err != nil {
+			//	zlog.Error(err.Error())
+			//}
+			//if err := myredis.SetKeyEx("user_info_"+uuid, string(rspString), constants.REDIS_TIMEOUT*time.Minute); err != nil {
+			//	zlog.Error(err.Error())
+			//}
+			return "获取用户信息成功", &rsp, 0
+		} else {
+			zlog.Error(err.Error())
+			return constants.SYSTEM_ERROR, nil, -1
+		}
+	}
+	var rsp respond.GetUserInfoRespond
+	if err := json.Unmarshal([]byte(rspString), &rsp); err != nil {
+		zlog.Error(err.Error())
+	}
+	return "获取用户信息成功", &rsp, 0
+}
+
+// AbleUsers 启用用户
+// 用户是否启用禁用需要实时更新contact_user_list状态，所以redis的contact_user_list需要删除
+func (uis *UserInfoService) AbleUsers(req *request.AbleUsersRequest) (string, int) {
+	var users []model.UserInfo
+	if res := dao.GormDB.Model(model.UserInfo{}).Where("uuid in (?)", req.UuidList).Find(&users); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	for _, user := range users {
+		user.Status = enum.NORMAL
+		if res := dao.GormDB.Save(&user); res.Error != nil {
+			zlog.Error(res.Error.Error())
+			return constants.SYSTEM_ERROR, -1
+		}
+	}
+	// 删除所有"contact_user_list"开头的key
+	//if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	return "启用用户成功", 0
+}
+
+// DisableUsers 禁用用户
+// 用户是否启用禁用需要实时更新contact_user_list状态，所以redis的contact_user_list需要删除
+func (uis *UserInfoService) DisableUsers(req *request.AbleUsersRequest) (string, int) {
+	var users []model.UserInfo
+	if res := dao.GormDB.Model(model.UserInfo{}).Where("uuid in (?)", req.UuidList).Find(&users); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	for _, user := range users {
+		user.Status = enum.DISABLE
+		if res := dao.GormDB.Save(&user); res.Error != nil {
+			zlog.Error(res.Error.Error())
+			return constants.SYSTEM_ERROR, -1
+		}
+		var sessionList []model.Session
+		if res := dao.GormDB.Where("send_id = ? or receive_id = ?", user.Uuid, user.Uuid).Find(&sessionList); res.Error != nil {
+			zlog.Error(res.Error.Error())
+			return constants.SYSTEM_ERROR, -1
+		}
+		for _, session := range sessionList {
+			var deletedAt gorm.DeletedAt
+			deletedAt.Time = time.Now()
+			deletedAt.Valid = true
+			session.DeletedAt = deletedAt
+			if res := dao.GormDB.Save(&session); res.Error != nil {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, -1
+			}
+		}
+	}
+	// 删除所有"contact_user_list"开头的key
+	//if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	return "禁用用户成功", 0
+}
+
+// DeleteUsers 删除用户
+// 用户是否启用禁用需要实时更新contact_user_list状态，所以redis的contact_user_list需要删除
+func (uis *UserInfoService) DeleteUsers(req *request.AbleUsersRequest) (string, int) {
+	var users []model.UserInfo
+	if res := dao.GormDB.Model(model.UserInfo{}).Where("uuid in (?)", req.UuidList).Find(&users); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	for _, user := range users {
+		user.DeletedAt.Valid = true
+		user.DeletedAt.Time = time.Now()
+		if res := dao.GormDB.Save(&user); res.Error != nil {
+			zlog.Error(res.Error.Error())
+			return constants.SYSTEM_ERROR, -1
+		}
+
+		// 删除会话
+		var sessionList []model.Session
+		if res := dao.GormDB.Where("send_id = ? or receive_id = ?", user.Uuid, user.Uuid).Find(&sessionList); res.Error != nil {
+			if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+				zlog.Info(res.Error.Error())
+			} else {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, -1
+			}
+		}
+		for _, session := range sessionList {
+			var deletedAt gorm.DeletedAt
+			deletedAt.Time = time.Now()
+			deletedAt.Valid = true
+			session.DeletedAt = deletedAt
+			if res := dao.GormDB.Save(&session); res.Error != nil {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, -1
+			}
+		}
+
+		// 删除联系人
+		var contactList []model.UserContact
+		if res := dao.GormDB.Where("user_id = ? or contact_id = ?", user.Uuid, user.Uuid).Find(&contactList); res.Error != nil {
+			if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+				zlog.Info(res.Error.Error())
+			} else {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, -1
+			}
+		}
+		for _, contact := range contactList {
+			var deletedAt gorm.DeletedAt
+			deletedAt.Time = time.Now()
+			deletedAt.Valid = true
+			contact.DeletedAt = deletedAt
+			if res := dao.GormDB.Save(&contact); res.Error != nil {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, -1
+			}
+		}
+
+		// 删除申请记录
+		var applyList []model.ContactApply
+		if res := dao.GormDB.Where("user_id = ? or contact_id = ?", user.Uuid, user.Uuid).Find(&applyList); res.Error != nil {
+			if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+				zlog.Info(res.Error.Error())
+			} else {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, -1
+			}
+		}
+		for _, apply := range applyList {
+			var deletedAt gorm.DeletedAt
+			deletedAt.Time = time.Now()
+			deletedAt.Valid = true
+			apply.DeletedAt = deletedAt
+			if res := dao.GormDB.Save(&apply); res.Error != nil {
+				zlog.Error(res.Error.Error())
+				return constants.SYSTEM_ERROR, -1
+			}
+		}
+
+	}
+	// 删除所有"contact_user_list"开头的key
+	//if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	return "删除用户成功", 0
 }
