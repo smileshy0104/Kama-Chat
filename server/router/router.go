@@ -53,31 +53,31 @@ func init() {
 		groupGp.POST("/get_group_member_list", api.GroupInfo.GetGroupMemberList)
 		groupGp.POST("/remove_group_members", api.GroupInfo.RemoveGroupMembers)
 	}
-	//
+
 	//sessionGp := Router.Group("/session")
 	//{
-	//	sessionGp.POST("/openSession", api.OpenSession)
-	//	sessionGp.POST("/getUserSessionList", api.GetUserSessionList)
-	//	sessionGp.POST("/getGroupSessionList", api.GetGroupSessionList)
-	//	sessionGp.POST("/deleteSession", api.DeleteSession)
-	//	sessionGp.POST("/checkOpenSessionAllowed", api.CheckOpenSessionAllowed)
+	//	sessionGp.POST("/openSession", api.UserContact.OpenSession)
+	//	sessionGp.POST("/getUserSessionList", api.UserContact.GetUserSessionList)
+	//	sessionGp.POST("/getGroupSessionList", api.UserContact.GetGroupSessionList)
+	//	sessionGp.POST("/deleteSession", api.UserContact.DeleteSession)
+	//	sessionGp.POST("/checkOpenSessionAllowed", api.UserContact.CheckOpenSessionAllowed)
 	//}
 	//
-	//contactGp := Router.Group("/contact")
-	//{
-	//	contactGp.POST("/getUserList", api.GetUserList)
-	//	contactGp.POST("/loadMyJoinedGroup", api.LoadMyJoinedGroup)
-	//	contactGp.POST("/getContactInfo", api.GetContactInfo)
-	//	contactGp.POST("/deleteContact", api.DeleteContact)
-	//	contactGp.POST("/applyContact", api.ApplyContact)
-	//	contactGp.POST("/getNewContactList", api.GetNewContactList)
-	//	contactGp.POST("/passContactApply", api.PassContactApply)
-	//	contactGp.POST("/blackContact", api.BlackContact)
-	//	contactGp.POST("/cancelBlackContact", api.CancelBlackContact)
-	//	contactGp.POST("/getAddGroupList", api.GetAddGroupList)
-	//	contactGp.POST("/refuseContactApply", api.RefuseContactApply)
-	//	contactGp.POST("/blackApply", api.BlackApply)
-	//}
+	contactGp := Router.Group("/contact")
+	{
+		contactGp.POST("/getUserList", api.UserContact.GetUserContactList)
+		contactGp.POST("/loadMyJoinedGroup", api.UserContact.LoadMyJoinedGroup)
+		contactGp.POST("/getContactInfo", api.UserContact.GetContactInfo)
+		//contactGp.POST("/deleteContact", api.UserContact.DeleteContact)
+		//contactGp.POST("/applyContact", api.UserContact.ApplyContact)
+		//contactGp.POST("/getNewContactList", api.UserContact.GetNewContactList)
+		//contactGp.POST("/passContactApply", api.UserContact.PassContactApply)
+		//contactGp.POST("/blackContact", api.UserContact.BlackContact)
+		//contactGp.POST("/cancelBlackContact", api.UserContact.CancelBlackContact)
+		//contactGp.POST("/getAddGroupList", api.UserContact.GetAddGroupList)
+		//contactGp.POST("/refuseContactApply", api.UserContact.RefuseContactApply)
+		//contactGp.POST("/blackApply", api.UserContact.BlackApply)
+	}
 	//
 	//messageGp := Router.Group("/message")
 	//{
