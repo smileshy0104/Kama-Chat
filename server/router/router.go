@@ -28,7 +28,7 @@ func init() {
 	Router.POST("/user/disable_users", api.UserInfo.DisableUsers)
 	Router.POST("/user/delete_users", api.UserInfo.DeleteUsers)
 	Router.POST("/user/set_admin", api.UserInfo.SetAdmin)
-	Router.POST("/user/sendSmsCode", api.UserInfo.SendSmsCode)
+	Router.POST("/user/send_sms_code", api.UserInfo.SendSmsCode)
 	Router.POST("/user/smsLogin", api.UserInfo.SmsLogin)
 	//Router.POST("/user/wsLogout", api.WsLogout)
 	//Router.POST("/group/createGroup", api.CreateGroup)

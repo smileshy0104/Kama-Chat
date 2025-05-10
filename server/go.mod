@@ -18,6 +18,7 @@ require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.7 // indirect
 	github.com/alibabacloud-go/debug v1.0.1 // indirect
 	github.com/alibabacloud-go/dysmsapi-20170525/v4 v4.1.3 // indirect
+	github.com/alibabacloud-go/dysmsapi-20170525/v5 v5.1.0 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.1 // indirect
 	github.com/alibabacloud-go/openapi-util v0.1.1 // indirect
 	github.com/alibabacloud-go/tea v1.3.9 // indirect

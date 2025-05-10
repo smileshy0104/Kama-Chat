@@ -19,7 +19,7 @@ var redisClient *redis.Client
 var ctx = context.Background()
 
 // init 函数在包被导入时初始化 Redis 客户端
-func init() {
+func InitRedis() {
 	conf := global.CONFIG
 	host := conf.RedisConfig.Host
 	port := conf.RedisConfig.Port

@@ -6,7 +6,7 @@ import (
 	"Kama-Chat/initialize/dao"
 	"Kama-Chat/initialize/zlog"
 	"Kama-Chat/lib/kafka"
-	"Kama-Chat/lib/redis"
+	myredis "Kama-Chat/lib/redis"
 	"Kama-Chat/router"
 	"context"
 	"fmt"
@@ -25,7 +25,10 @@ func main() {
 	host := conf.MainConfig.Host
 	port := conf.MainConfig.Port
 	kafkaConfig := conf.KafkaConfig
+	// 2. 数据库初始化
 	dao.InitMysql()
+	// 3. Redis初始化
+	myredis.InitRedis()
 
 	if kafkaConfig.MessageMode == "kafka" {
 		kafka.KafkaService.KafkaInit()
@@ -107,7 +110,7 @@ func main() {
 	zlog.Info("关闭服务器...")
 
 	// 删除所有Redis键
-	if err := redis.DeleteAllRedisKeys(); err != nil {
+	if err := myredis.DeleteAllRedisKeys(); err != nil {
 		zlog.Error(err.Error())
 	} else {
 		zlog.Info("所有Redis键已删除")
