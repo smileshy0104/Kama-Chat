@@ -34,22 +34,22 @@ func init() {
 		userGp.POST("/smsLogin", api.UserInfo.SmsLogin)
 	}
 
-	//groupGp := Router.Group("/group")
-	//{
-	//	groupGp.POST("/createGroup", api.CreateGroup)
-	//	groupGp.POST("/loadMyGroup", api.LoadMyGroup)
-	//	groupGp.POST("/checkGroupAddMode", api.CheckGroupAddMode)
-	//	groupGp.POST("/enterGroupDirectly", api.EnterGroupDirectly)
-	//	groupGp.POST("/leaveGroup", api.LeaveGroup)
-	//	groupGp.POST("/dismissGroup", api.DismissGroup)
-	//	groupGp.POST("/getGroupInfo", api.GetGroupInfo)
-	//	groupGp.POST("/getGroupInfoList", api.GetGroupInfoList)
-	//	groupGp.POST("/deleteGroups", api.DeleteGroups)
-	//	groupGp.POST("/setGroupsStatus", api.SetGroupsStatus)
-	//	groupGp.POST("/updateGroupInfo", api.UpdateGroupInfo)
-	//	groupGp.POST("/getGroupMemberList", api.GetGroupMemberList)
-	//	groupGp.POST("/removeGroupMembers", api.RemoveGroupMembers)
-	//}
+	groupGp := Router.Group("/group")
+	{
+		groupGp.POST("/createGroup", api.GroupInfo.CreateGroup)
+		groupGp.POST("/loadMyGroup", api.GroupInfo.LoadMyGroup)
+		groupGp.POST("/checkGroupAddMode", api.GroupInfo.CheckGroupAddMode)
+		//groupGp.POST("/enterGroupDirectly", api.EnterGroupDirectly)
+		//groupGp.POST("/leaveGroup", api.LeaveGroup)
+		//groupGp.POST("/dismissGroup", api.DismissGroup)
+		//groupGp.POST("/getGroupInfo", api.GetGroupInfo)
+		//groupGp.POST("/getGroupInfoList", api.GetGroupInfoList)
+		//groupGp.POST("/deleteGroups", api.DeleteGroups)
+		//groupGp.POST("/setGroupsStatus", api.SetGroupsStatus)
+		//groupGp.POST("/updateGroupInfo", api.UpdateGroupInfo)
+		//groupGp.POST("/getGroupMemberList", api.GetGroupMemberList)
+		//groupGp.POST("/removeGroupMembers", api.RemoveGroupMembers)
+	}
 	//
 	//sessionGp := Router.Group("/session")
 	//{
