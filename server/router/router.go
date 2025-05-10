@@ -36,11 +36,11 @@ func init() {
 
 	groupGp := Router.Group("/group")
 	{
-		groupGp.POST("/createGroup", api.GroupInfo.CreateGroup)
-		groupGp.POST("/loadMyGroup", api.GroupInfo.LoadMyGroup)
-		groupGp.POST("/checkGroupAddMode", api.GroupInfo.CheckGroupAddMode)
-		//groupGp.POST("/enterGroupDirectly", api.EnterGroupDirectly)
-		//groupGp.POST("/leaveGroup", api.LeaveGroup)
+		groupGp.POST("/create_group", api.GroupInfo.CreateGroup)
+		groupGp.POST("/load_my_group", api.GroupInfo.LoadMyGroup)
+		groupGp.POST("/check_group_add_mode", api.GroupInfo.CheckGroupAddMode)
+		groupGp.POST("/enter_group_directly", api.GroupInfo.EnterGroupDirectly)
+		groupGp.POST("/leave_group", api.GroupInfo.LeaveGroup)
 		//groupGp.POST("/dismissGroup", api.DismissGroup)
 		//groupGp.POST("/getGroupInfo", api.GetGroupInfo)
 		//groupGp.POST("/getGroupInfoList", api.GetGroupInfoList)

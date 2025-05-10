@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -128,4 +129,128 @@ func (gis *GroupInfoService) CheckGroupAddMode(req *request.CheckGroupAddModeReq
 		zlog.Error(err.Error())
 	}
 	return "加群方式获取成功", rsp.AddMode, 0
+}
+
+// EnterGroupDirectly 直接进群
+// ownerId 是群聊id
+func (gis *GroupInfoService) EnterGroupDirectly(req *request.EnterGroupDirectlyRequest) (string, int) {
+	var group model.GroupInfo
+	if res := dao.GormDB.First(&group, "uuid = ?", req.OwnerId); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	var members []string
+	if err := json.Unmarshal(group.Members, &members); err != nil {
+		zlog.Error(err.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	members = append(members, req.ContactId)
+	if data, err := json.Marshal(members); err != nil {
+		zlog.Error(err.Error())
+		return constants.SYSTEM_ERROR, -1
+	} else {
+		group.Members = data
+	}
+	group.MemberCnt += 1
+	if res := dao.GormDB.Save(&group); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	newContact := model.UserContact{
+		UserId:      req.ContactId,
+		ContactId:   req.OwnerId,
+		ContactType: enum.GROUP,   // 用户
+		Status:      enum.NORMAL_, // 正常
+		CreatedAt:   time.Now(),
+		UpdateAt:    time.Now(),
+	}
+	if res := dao.GormDB.Create(&newContact); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	//if err := myredis.DelKeysWithPattern("group_info_" + contactId); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	//if err := myredis.DelKeysWithPattern("groupmember_list_" + contactId); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	if err := myredis.DelKeysWithPattern("group_session_list_" + req.OwnerId); err != nil {
+		zlog.Error(err.Error())
+	}
+	if err := myredis.DelKeysWithPattern("my_joined_group_list_" + req.OwnerId); err != nil {
+		zlog.Error(err.Error())
+	}
+	//if err := myredis.DelKeysWithPattern("session_" + ownerId + "_" + contactId); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	return "进群成功", 0
+}
+
+// LeaveGroup 退群
+func (gis *GroupInfoService) LeaveGroup(req *request.LeaveGroupRequest) (string, int) {
+	// 从群聊中清除该用户
+	var group model.GroupInfo
+	if res := dao.GormDB.First(&group, "uuid = ?", req.GroupId); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	var members []string
+	if err := json.Unmarshal(group.Members, &members); err != nil {
+		zlog.Error(err.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	for i, member := range members {
+		if member == req.UserId {
+			members = append(members[:i], members[i+1:]...)
+			break
+		}
+	}
+	if data, err := json.Marshal(members); err != nil {
+		zlog.Error(err.Error())
+		return constants.SYSTEM_ERROR, -1
+	} else {
+		group.Members = data
+	}
+	group.MemberCnt -= 1
+	if res := dao.GormDB.Save(&group); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	// 删除会话
+	var deletedAt gorm.DeletedAt
+	deletedAt.Time = time.Now()
+	deletedAt.Valid = true
+	if res := dao.GormDB.Model(&model.Session{}).Where("send_id = ? AND receive_id = ?", req.UserId, req.GroupId).Update("deleted_at", deletedAt); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	// 删除联系人
+	if res := dao.GormDB.Model(&model.UserContact{}).Where("user_id = ? AND contact_id = ?", req.UserId, req.GroupId).Updates(map[string]interface{}{
+		"deleted_at": deletedAt,
+		"status":     enum.QUIT_GROUP, // 退群
+	}); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	// 删除申请记录，后面还可以加
+	if res := dao.GormDB.Model(&model.ContactApply{}).Where("contact_id = ? AND user_id = ?", req.GroupId, req.UserId).Update("deleted_at", deletedAt); res.Error != nil {
+		zlog.Error(res.Error.Error())
+		return constants.SYSTEM_ERROR, -1
+	}
+	//if err := myredis.DelKeysWithPattern("group_info_" + groupId); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	//if err := myredis.DelKeysWithPattern("groupmember_list_" + groupId); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	if err := myredis.DelKeysWithPattern("group_session_list_" + req.UserId); err != nil {
+		zlog.Error(err.Error())
+	}
+	if err := myredis.DelKeysWithPattern("my_joined_group_list_ " + req.UserId); err != nil {
+		zlog.Error(err.Error())
+	}
+	//if err := myredis.DelKeysWithPattern("session_" + userId + "_" + groupId); err != nil {
+	//	zlog.Error(err.Error())
+	//}
+	return "退群成功", 0
 }

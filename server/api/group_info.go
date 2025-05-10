@@ -60,3 +60,33 @@ func (gic *GroupInfoController) CheckGroupAddMode(c *gin.Context) {
 	message, addMode, ret := gic.groupInfoSrv.CheckGroupAddMode(req)
 	response.JsonBack(c, message, ret, addMode)
 }
+
+// EnterGroupDirectly 直接进群
+func (gic *GroupInfoController) EnterGroupDirectly(c *gin.Context) {
+	req := &request.EnterGroupDirectlyRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := gic.groupInfoSrv.EnterGroupDirectly(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// LeaveGroup 退群
+func (gic *GroupInfoController) LeaveGroup(c *gin.Context) {
+	req := &request.LeaveGroupRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := gic.groupInfoSrv.LeaveGroup(req)
+	response.JsonBack(c, message, ret, nil)
+}
