@@ -91,3 +91,63 @@ func (ucc *UserContactController) ApplyContact(c *gin.Context) {
 	message, ret := ucc.userContactSrv.ApplyContact(req)
 	response.JsonBack(c, message, ret, nil)
 }
+
+// GetNewContactList 获取新的联系人申请列表
+func (ucc *UserContactController) GetNewContactList(c *gin.Context) {
+	req := &request.OwnlistRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, data, ret := ucc.userContactSrv.GetNewContactList(req)
+	response.JsonBack(c, message, ret, data)
+}
+
+// PassContactApply 通过联系人申请
+func (ucc *UserContactController) PassContactApply(c *gin.Context) {
+	req := &request.PassContactApplyRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := ucc.userContactSrv.PassContactApply(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// BlackContact 拉黑联系人
+func (ucc *UserContactController) BlackContact(c *gin.Context) {
+	req := &request.BlackContactRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := ucc.userContactSrv.BlackContact(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// CancelBlackContact 解除拉黑联系人
+func (ucc *UserContactController) CancelBlackContact(c *gin.Context) {
+	req := &request.BlackContactRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := ucc.userContactSrv.CancelBlackContact(req)
+	response.JsonBack(c, message, ret, nil)
+}

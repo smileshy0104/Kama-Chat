@@ -160,8 +160,8 @@ func (gis *GroupInfoService) EnterGroupDirectly(req *request.EnterGroupDirectlyR
 	newContact := model.UserContact{
 		UserId:      req.ContactId,
 		ContactId:   req.OwnerId,
-		ContactType: enum.GROUP,   // 用户
-		Status:      enum.NORMAL_, // 正常
+		ContactType: enum.GROUP,  // 用户
+		Status:      enum.NORMAL, // 正常
 		CreatedAt:   time.Now(),
 		UpdateAt:    time.Now(),
 	}
