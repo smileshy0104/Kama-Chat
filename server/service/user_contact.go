@@ -25,15 +25,6 @@ type UserContactService struct {
 // GetUserList 获取用户联系人列表
 // 该方法根据用户ID获取其联系人列表，首先尝试从Redis缓存中获取数据，
 // 如果缓存不存在，则从数据库中查询并更新缓存。
-// 参数:
-//
-//	req *request.OwnlistRequest - 包含请求信息的数据结构，主要为OwnerID
-//
-// 返回值:
-//
-//	string - 操作结果信息
-//	[]respond.MyUserListRespond - 用户列表响应数据结构切片
-//	int - 错误代码，0表示成功，-1表示系统错误
 func (ucs *UserContactService) GetUserList(req *request.OwnlistRequest) (string, []respond.MyUserListRespond, int) {
 	// 尝试从Redis中获取联系人列表
 	rspString, err := myredis.GetKeyNilIsErr("contact_user_list_" + req.OwnerId)
