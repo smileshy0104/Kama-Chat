@@ -427,6 +427,7 @@ func (uis *UserInfoService) SmsLogin(req *request.SmsLoginRequest) (string, *res
 		zlog.Info(message)
 		return message, nil, -2
 	} else {
+		// 删除redis中的验证码
 		if err := myredis.DelKeyIfExists(key); err != nil {
 			zlog.Error(err.Error())
 			return constants.SYSTEM_ERROR, nil, -1
