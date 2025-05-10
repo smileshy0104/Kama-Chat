@@ -90,3 +90,54 @@ func (gic *GroupInfoController) LeaveGroup(c *gin.Context) {
 	message, ret := gic.groupInfoSrv.LeaveGroup(req)
 	response.JsonBack(c, message, ret, nil)
 }
+
+// DismissGroup 解散群聊
+func (gic *GroupInfoController) DismissGroup(c *gin.Context) {
+	req := &request.DismissGroupRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := gic.groupInfoSrv.DismissGroup(req)
+	response.JsonBack(c, message, ret, nil)
+}
+
+// GetGroupInfo 获取群聊详情
+func (gic *GroupInfoController) GetGroupInfo(c *gin.Context) {
+	req := &request.GetGroupInfoRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, groupInfo, ret := gic.groupInfoSrv.GetGroupInfo(req)
+	response.JsonBack(c, message, ret, groupInfo)
+}
+
+// GetGroupInfoList 获取群聊列表 - 管理员
+func (gic *GroupInfoController) GetGroupInfoList(c *gin.Context) {
+	message, groupList, ret := gic.groupInfoSrv.GetGroupInfoList()
+	response.JsonBack(c, message, ret, groupList)
+}
+
+// DeleteGroups 删除列表中群聊 - 管理员
+func (gic *GroupInfoController) DeleteGroups(c *gin.Context) {
+	req := &request.DeleteGroupsRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		zlog.Error(err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"code":    500,
+			"message": constants.SYSTEM_ERROR,
+		})
+		return
+	}
+	message, ret := gic.groupInfoSrv.DeleteGroups(req)
+	response.JsonBack(c, message, ret, nil)
+}
