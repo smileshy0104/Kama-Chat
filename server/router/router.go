@@ -90,7 +90,12 @@ func init() {
 		messageGp.POST("/upload_file", api.Message.UploadFile)
 	}
 
-	//Router.POST("/chatroom/getCurContactListInChatRoom", api.GetCurContactListInChatRoom)
+	// 聊天室相关
+	chatRoomGp := Router.Group("/chatroom")
+	{
+		chatRoomGp.POST("/getCurContactListInChatRoom", api.ChatRoom.GetCurContactListInChatRoom)
+	}
+
 	Router.GET("/wss", api.Wss.WsLogin)
 	Router.POST("/user/wsLogout", api.Wss.WsLogout)
 
