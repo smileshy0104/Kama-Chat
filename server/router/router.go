@@ -80,14 +80,15 @@ func init() {
 		contactGp.POST("/refuse_contact_apply", api.UserContact.RefuseContactApply)
 		contactGp.POST("/black_apply", api.UserContact.BlackApply)
 	}
-	//
-	//messageGp := Router.Group("/message")
-	//{
-	//	messageGp.POST("/getMessageList", api.GetMessageList)
-	//	messageGp.POST("/getGroupMessageList", api.GetGroupMessageList)
-	//	messageGp.POST("/uploadAvatar", api.UploadAvatar)
-	//	messageGp.POST("/uploadFile", api.UploadFile)
-	//}
+
+	// 消息相关
+	messageGp := Router.Group("/message")
+	{
+		messageGp.POST("/get_message_list", api.Message.GetMessageList)
+		messageGp.POST("/get_group_message_list", api.Message.GetGroupMessageList)
+		messageGp.POST("/upload_avatar", api.Message.UploadAvatar)
+		messageGp.POST("/upload_file", api.Message.UploadFile)
+	}
 
 	//Router.POST("/chatroom/getCurContactListInChatRoom", api.GetCurContactListInChatRoom)
 	//Router.GET("/wss", api.WsLogin)
