@@ -54,15 +54,17 @@ func init() {
 		groupGp.POST("/remove_group_members", api.GroupInfo.RemoveGroupMembers)
 	}
 
-	//sessionGp := Router.Group("/session")
-	//{
-	//	sessionGp.POST("/openSession", api.UserContact.OpenSession)
-	//	sessionGp.POST("/getUserSessionList", api.UserContact.GetUserSessionList)
-	//	sessionGp.POST("/getGroupSessionList", api.UserContact.GetGroupSessionList)
-	//	sessionGp.POST("/deleteSession", api.UserContact.DeleteSession)
-	//	sessionGp.POST("/checkOpenSessionAllowed", api.UserContact.CheckOpenSessionAllowed)
-	//}
-	//
+	// 会话相关
+	sessionGp := Router.Group("/session")
+	{
+		sessionGp.POST("/open_session", api.Session.OpenSession)
+		sessionGp.POST("/get_user_session_list", api.Session.GetUserSessionList)
+		sessionGp.POST("/get_group_session_list", api.Session.GetGroupSessionList)
+		sessionGp.POST("/delete_session", api.Session.DeleteSession)
+		sessionGp.POST("/check_open_session_allowed", api.Session.CheckOpenSessionAllowed)
+	}
+
+	// 联系人相关
 	contactGp := Router.Group("/contact")
 	{
 		contactGp.POST("/get_user_contact_list", api.UserContact.GetUserContactList)
