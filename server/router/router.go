@@ -3,7 +3,7 @@ package router
 import (
 	"Kama-Chat/api"
 	"Kama-Chat/global"
-	"Kama-Chat/middleware"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,11 +11,12 @@ var Router *gin.Engine
 
 func init() {
 	Router = gin.Default()
-	//corsConfig := cors.DefaultConfig()
-	//corsConfig.AllowOrigins = []string{"*"}
-	//corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	//corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
-	Router.Use(middleware.Cors())
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"*"}
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	Router.Use(cors.New(corsConfig))
+	//Router.Use(middleware.Cors())
 	//Router.Use(ssl.TlsHandler(global.CONFIG.MainConfig.Host, global.CONFIG.MainConfig.Port))
 	Router.Static("/static/avatars", global.CONFIG.StaticSrcConfig.StaticAvatarPath)
 	Router.Static("/static/files", global.CONFIG.StaticSrcConfig.StaticFilePath)
