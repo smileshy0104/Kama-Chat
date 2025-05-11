@@ -31,3 +31,22 @@ const (
 	REFUSE
 	BLACK_
 )
+
+// message_status_enum 消息状态
+const (
+	// 未发送
+	Unsent = iota
+	// 已发送
+	Sent
+)
+
+// message_type_enum 消息类型
+const (
+	Text = iota
+	// 语音
+	Voice
+	// 文件
+	File
+	// 通话
+	AudioOrVideo
+)
