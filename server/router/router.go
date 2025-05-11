@@ -91,7 +91,7 @@ func init() {
 	}
 
 	//Router.POST("/chatroom/getCurContactListInChatRoom", api.GetCurContactListInChatRoom)
-	//Router.GET("/wss", api.WsLogin)
-	//Router.POST("/user/wsLogout", api.WsLogout)
+	Router.GET("/wss", api.Wss.WsLogin)
+	Router.POST("/user/wsLogout", api.Wss.WsLogout)
 
 }
