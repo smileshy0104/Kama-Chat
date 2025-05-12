@@ -27,7 +27,7 @@ func init() {
 	userGp := Router.Group("/user")
 	{
 		userGp.POST("/update_user", api.UserInfo.UpdateUserInfo)
-		userGp.POST("/get_user_list", api.UserInfo.GetUserInfoList)
+		userGp.POST("/get_user_info_list", api.UserInfo.GetUserInfoList)
 		userGp.POST("/able_users", api.UserInfo.AbleUsers)
 		userGp.POST("/get_user_info", api.UserInfo.GetUserInfo)
 		userGp.POST("/disable_users", api.UserInfo.DisableUsers)
