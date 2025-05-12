@@ -3,7 +3,7 @@ package router
 import (
 	"Kama-Chat/api"
 	"Kama-Chat/global"
-	"github.com/gin-contrib/cors"
+	"Kama-Chat/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,12 +11,10 @@ var Router *gin.Engine
 
 func init() {
 	Router = gin.Default()
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"*"}
-	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
-	Router.Use(cors.New(corsConfig))
+	// 添加跨域中间件
 	//Router.Use(middleware.Cors())
+	Router.Use(middleware.CorsNew())
+
 	//Router.Use(ssl.TlsHandler(global.CONFIG.MainConfig.Host, global.CONFIG.MainConfig.Port))
 	Router.Static("/static/avatars", global.CONFIG.StaticSrcConfig.StaticAvatarPath)
 	Router.Static("/static/files", global.CONFIG.StaticSrcConfig.StaticFilePath)
@@ -26,7 +24,7 @@ func init() {
 	// 用户相关
 	userGp := Router.Group("/user")
 	{
-		userGp.POST("/update_user", api.UserInfo.UpdateUserInfo)
+		userGp.POST("/update_user_info", api.UserInfo.UpdateUserInfo)
 		userGp.POST("/get_user_info_list", api.UserInfo.GetUserInfoList)
 		userGp.POST("/able_users", api.UserInfo.AbleUsers)
 		userGp.POST("/get_user_info", api.UserInfo.GetUserInfo)
