@@ -30,10 +30,12 @@ func main() {
 	// 3. Redis初始化
 	myredis.InitRedis()
 
+	// 4. kafka初始化
 	if kafkaConfig.MessageMode == "kafka" {
 		kafka.KafkaService.KafkaInit()
 	}
 
+	// 5. 启动kafka服务
 	if kafkaConfig.MessageMode == "channel" {
 		//go chat.ChatServer.Start()
 	} else {
@@ -52,13 +54,6 @@ func main() {
 		//	return
 		//}
 	}()
-
-	// 设置信号监听
-	//quit := make(chan os.Signal, 1)
-	//signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	// 等待信号
-	//<-quit
 
 	address := fmt.Sprintf("%s:%d", host, port)
 	//监听http服务
@@ -101,6 +96,7 @@ func main() {
 
 	fmt.Println("program exit ok")
 
+	// 关闭kafka服务
 	if kafkaConfig.MessageMode == "kafka" {
 		kafka.KafkaService.KafkaClose()
 	}

@@ -13,6 +13,7 @@ import (
 // - ret int: 响应状态码，用于指示请求的结果状态。
 // - data interface{}: 响应数据，包含客户端请求的数据结果，可以是任意类型。
 func JsonBack(c *gin.Context, message string, ret int, data interface{}) {
+	// 根据状态码生成相应的 JSON 响应
 	if ret == 0 {
 		if data != nil {
 			c.JSON(http.StatusOK, gin.H{

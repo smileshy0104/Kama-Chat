@@ -10,16 +10,20 @@ import (
 	"net/http"
 )
 
+// UserInfo 用户信息
 var UserInfo = &UserInfoController{}
 
+// UserInfoController 控制器
 type UserInfoController struct {
+	// userInfoSrv 用户信息服务
 	userInfoSrv *service.UserInfoService
 }
 
 // Register 注册
 func (uic *UserInfoController) Register(c *gin.Context) {
-	registerReq := &request.RegisterRequest{}
-	if err := c.ShouldBindJSON(&registerReq); err != nil {
+	// 绑定请求参数
+	req := &request.RegisterRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		zlog.Error(err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"code":    500,
@@ -27,7 +31,8 @@ func (uic *UserInfoController) Register(c *gin.Context) {
 		})
 		return
 	}
-	message, userInfo, ret := uic.userInfoSrv.Register(registerReq)
+	// 调用服务
+	message, userInfo, ret := uic.userInfoSrv.Register(req)
 	response.JsonBack(c, message, ret, userInfo)
 }
 

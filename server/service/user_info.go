@@ -21,6 +21,7 @@ import (
 	"time"
 )
 
+// UserInfoService 用户信息服务
 type UserInfoService struct {
 	Ctx *gin.Context
 }
@@ -28,6 +29,7 @@ type UserInfoService struct {
 // Register 注册
 func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *respond.RegisterRespond, int) {
 	key := "auth_code_" + req.Telephone
+	// 验证码校验
 	code, err := myredis.GetKey(key)
 	if err != nil {
 		zlog.Error(err.Error())
@@ -38,6 +40,7 @@ func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *res
 		zlog.Info(message)
 		return message, nil, -2
 	} else {
+		// 删除已存在验证码
 		if err := myredis.DelKeyIfExists(key); err != nil {
 			zlog.Error(err.Error())
 			return constants.SYSTEM_ERROR, nil, -1
@@ -49,6 +52,7 @@ func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *res
 	if ret != 0 {
 		return message, nil, ret
 	}
+	// 创建用户
 	var newUser model.UserInfo
 	newUser.Uuid = "U" + random.GetNowAndLenRandomString(11)
 	newUser.Telephone = req.Telephone
@@ -58,13 +62,8 @@ func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *res
 	newUser.CreatedAt = time.Now()
 	newUser.IsAdmin = validate.CheckUserIsAdminOrNot(newUser)
 	newUser.Status = enum.NORMAL
-	// 手机号验证，最后一步才调用api，省钱hhh
-	//err := sms.VerificationCode(req.Telephone)
-	//if err != nil {
-	//	zlog.Error(err.Error())
-	//	return "", err
-	//}
 
+	// 创建用户
 	res := dao.GormDB.Create(&newUser)
 	if res.Error != nil {
 		zlog.Error(res.Error.Error())
@@ -74,6 +73,8 @@ func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *res
 	//if err := chat.NewClientInit(c, newUser.Uuid); err != nil {
 	//	return "", err
 	//}
+
+	// 注册成功，返回用户信息
 	registerRsp := &respond.RegisterRespond{
 		Uuid:      newUser.Uuid,
 		Telephone: newUser.Telephone,
@@ -96,6 +97,7 @@ func (uis *UserInfoService) Register(req *request.RegisterRequest) (string, *res
 func (uis *UserInfoService) Login(req *request.LoginRequest) (string, *respond.LoginRespond, int) {
 	password := req.Password
 	var user model.UserInfo
+	// 获取用户信息
 	res := dao.GormDB.First(&user, "telephone = ?", req.Telephone)
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
@@ -106,12 +108,13 @@ func (uis *UserInfoService) Login(req *request.LoginRequest) (string, *respond.L
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, nil, -1
 	}
+	// 密码校验 TODO 密码目前未加密
 	if user.Password != password {
 		message := "密码不正确，请重试"
 		zlog.Error(message)
 		return message, nil, -2
 	}
-
+	// 登录成功，返回用户信息
 	loginRsp := &respond.LoginRespond{
 		Uuid:      user.Uuid,
 		Telephone: user.Telephone,
@@ -454,5 +457,6 @@ func (uis *UserInfoService) SmsLogin(req *request.SmsLoginRequest) (string, *res
 
 // SendSmsCode 发送短信验证码 - 验证码登录
 func (uis *UserInfoService) SendSmsCode(req *request.SendSmsCodeRequest) (string, int) {
+	// 发送短信验证码
 	return sms.VerificationCode(req.Telephone)
 }
