@@ -7,9 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// 设置路由
 var Router *gin.Engine
 
 func init() {
+	// 初始化路由
 	Router = gin.Default()
 	// 添加跨域中间件
 	//Router.Use(middleware.Cors())
