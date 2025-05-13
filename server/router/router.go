@@ -34,7 +34,7 @@ func init() {
 		userGp.POST("/delete_users", api.UserInfo.DeleteUsers)
 		userGp.POST("/set_admin", api.UserInfo.SetAdmin)
 		userGp.POST("/send_sms_code", api.UserInfo.SendSmsCode)
-		userGp.POST("/smsLogin", api.UserInfo.SmsLogin)
+		userGp.POST("/sms_login", api.UserInfo.SmsLogin)
 	}
 
 	// 群组相关
