@@ -138,6 +138,7 @@ func (uis *UserInfoService) Login(req *request.LoginRequest) (string, *respond.L
 // 但是需要更新redis的user_info，因为可能影响用户搜索
 func (uis *UserInfoService) UpdateUserInfo(req *request.UpdateUserInfoRequest) (string, int) {
 	var user model.UserInfo
+	// 获取用户信息
 	if res := dao.GormDB.First(&user, "uuid = ?", req.Uuid); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
@@ -157,13 +158,15 @@ func (uis *UserInfoService) UpdateUserInfo(req *request.UpdateUserInfoRequest) (
 	if req.Avatar != "" {
 		user.Avatar = req.Avatar
 	}
+	// 保存到数据库
 	if res := dao.GormDB.Save(&user); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
-	//if err := myredis.DelKeysWithPattern("user_info_" + updateReq.Uuid); err != nil {
-	//	zlog.Error(err.Error())
-	//}
+	// 删除redis
+	if err := myredis.DelKeysWithPattern("user_info_" + req.Uuid); err != nil {
+		zlog.Error(err.Error())
+	}
 	return "修改用户信息成功", 0
 }
 
@@ -177,6 +180,7 @@ func (uis *UserInfoService) GetUserInfoList(req *request.GetUserInfoListRequest)
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, nil, -1
 	}
+	// 获取用户信息
 	var rsp []respond.GetUserListRespond
 	for _, user := range users {
 		rp := respond.GetUserListRespond{
@@ -198,17 +202,19 @@ func (uis *UserInfoService) GetUserInfoList(req *request.GetUserInfoListRequest)
 
 // GetUserInfo 获取用户信息
 func (uis *UserInfoService) GetUserInfo(req *request.GetUserInfoRequest) (string, *respond.GetUserInfoRespond, int) {
-	// redis
 	zlog.Info(req.Uuid)
+	// 从redis中获取user_info_（判断redis中是否存在对应的user_info）
 	rspString, err := myredis.GetKeyNilIsErr("user_info_" + req.Uuid)
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			zlog.Info(err.Error())
 			var user model.UserInfo
+			// 获取用户信息
 			if res := dao.GormDB.Where("uuid = ?", req.Uuid).Find(&user); res.Error != nil {
 				zlog.Error(res.Error.Error())
 				return constants.SYSTEM_ERROR, nil, -1
 			}
+			// 获取用户信息
 			rsp := respond.GetUserInfoRespond{
 				Uuid:      user.Uuid,
 				Telephone: user.Telephone,
@@ -222,13 +228,14 @@ func (uis *UserInfoService) GetUserInfo(req *request.GetUserInfoRequest) (string
 				IsAdmin:   user.IsAdmin,
 				Status:    user.Status,
 			}
-			//rspString, err := json.Marshal(rsp)
-			//if err != nil {
-			//	zlog.Error(err.Error())
-			//}
-			//if err := myredis.SetKeyEx("user_info_"+uuid, string(rspString), constants.REDIS_TIMEOUT*time.Minute); err != nil {
-			//	zlog.Error(err.Error())
-			//}
+			rspString, err := json.Marshal(rsp)
+			if err != nil {
+				zlog.Error(err.Error())
+			}
+			// 存放user_info 到redis
+			if err := myredis.SetKeyEx("user_info_"+req.Uuid, string(rspString), constants.REDIS_TIMEOUT*time.Minute); err != nil {
+				zlog.Error(err.Error())
+			}
 			return "获取用户信息成功", &rsp, 0
 		} else {
 			zlog.Error(err.Error())
@@ -236,6 +243,7 @@ func (uis *UserInfoService) GetUserInfo(req *request.GetUserInfoRequest) (string
 		}
 	}
 	var rsp respond.GetUserInfoRespond
+	// 解析json
 	if err := json.Unmarshal([]byte(rspString), &rsp); err != nil {
 		zlog.Error(err.Error())
 	}
