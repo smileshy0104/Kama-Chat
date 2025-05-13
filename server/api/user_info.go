@@ -21,7 +21,6 @@ type UserInfoController struct {
 
 // Register 注册
 func (uic *UserInfoController) Register(c *gin.Context) {
-	// 绑定请求参数
 	req := &request.RegisterRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		zlog.Error(err.Error())
@@ -31,15 +30,14 @@ func (uic *UserInfoController) Register(c *gin.Context) {
 		})
 		return
 	}
-	// 调用服务
 	message, userInfo, ret := uic.userInfoSrv.Register(req)
 	response.JsonBack(c, message, ret, userInfo)
 }
 
 // Login 登录
 func (uic *UserInfoController) Login(c *gin.Context) {
-	loginReq := &request.LoginRequest{}
-	if err := c.ShouldBindJSON(&loginReq); err != nil {
+	req := &request.LoginRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		zlog.Error(err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"code":    500,
@@ -47,7 +45,7 @@ func (uic *UserInfoController) Login(c *gin.Context) {
 		})
 		return
 	}
-	message, userInfo, ret := uic.userInfoSrv.Login(loginReq)
+	message, userInfo, ret := uic.userInfoSrv.Login(req)
 	response.JsonBack(c, message, ret, userInfo)
 }
 

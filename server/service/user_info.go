@@ -254,48 +254,57 @@ func (uis *UserInfoService) GetUserInfo(req *request.GetUserInfoRequest) (string
 // 用户是否启用禁用需要实时更新contact_user_list状态，所以redis的contact_user_list需要删除
 func (uis *UserInfoService) AbleUsers(req *request.AbleUsersRequest) (string, int) {
 	var users []model.UserInfo
+	// 获取用户信息
 	if res := dao.GormDB.Model(model.UserInfo{}).Where("uuid in (?)", req.UuidList).Find(&users); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 遍历更新状态
 	for _, user := range users {
 		user.Status = enum.NORMAL
+		// 保存到数据库
 		if res := dao.GormDB.Save(&user); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
 	}
 	// 删除所有"contact_user_list"开头的key
-	//if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
-	//	zlog.Error(err.Error())
-	//}
+	if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
+		zlog.Error(err.Error())
+	}
 	return "启用用户成功", 0
 }
 
-// DisableUsers 禁用用户
+// DisableUsers 禁用用户——同时把联系人的会话删除
 // 用户是否启用禁用需要实时更新contact_user_list状态，所以redis的contact_user_list需要删除
 func (uis *UserInfoService) DisableUsers(req *request.AbleUsersRequest) (string, int) {
 	var users []model.UserInfo
+	// 获取用户信息
 	if res := dao.GormDB.Model(model.UserInfo{}).Where("uuid in (?)", req.UuidList).Find(&users); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 遍历更新状态
 	for _, user := range users {
 		user.Status = enum.DISABLE
+		// 保存到数据库
 		if res := dao.GormDB.Save(&user); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
 		var sessionList []model.Session
+		// 获取会话
 		if res := dao.GormDB.Where("send_id = ? or receive_id = ?", user.Uuid, user.Uuid).Find(&sessionList); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
+		// 遍历更新会话
 		for _, session := range sessionList {
 			var deletedAt gorm.DeletedAt
 			deletedAt.Time = time.Now()
 			deletedAt.Valid = true
 			session.DeletedAt = deletedAt
+			// 保存会话
 			if res := dao.GormDB.Save(&session); res.Error != nil {
 				zlog.Error(res.Error.Error())
 				return constants.SYSTEM_ERROR, -1
@@ -303,9 +312,9 @@ func (uis *UserInfoService) DisableUsers(req *request.AbleUsersRequest) (string,
 		}
 	}
 	// 删除所有"contact_user_list"开头的key
-	//if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
-	//	zlog.Error(err.Error())
-	//}
+	if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
+		zlog.Error(err.Error())
+	}
 	return "禁用用户成功", 0
 }
 
@@ -313,13 +322,16 @@ func (uis *UserInfoService) DisableUsers(req *request.AbleUsersRequest) (string,
 // 用户是否启用禁用需要实时更新contact_user_list状态，所以redis的contact_user_list需要删除
 func (uis *UserInfoService) DeleteUsers(req *request.AbleUsersRequest) (string, int) {
 	var users []model.UserInfo
+	// 获取用户信息
 	if res := dao.GormDB.Model(model.UserInfo{}).Where("uuid in (?)", req.UuidList).Find(&users); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 遍历更新状态
 	for _, user := range users {
 		user.DeletedAt.Valid = true
 		user.DeletedAt.Time = time.Now()
+		// 保存到数据库
 		if res := dao.GormDB.Save(&user); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
@@ -335,11 +347,13 @@ func (uis *UserInfoService) DeleteUsers(req *request.AbleUsersRequest) (string, 
 				return constants.SYSTEM_ERROR, -1
 			}
 		}
+		// 遍历更新会话
 		for _, session := range sessionList {
 			var deletedAt gorm.DeletedAt
 			deletedAt.Time = time.Now()
 			deletedAt.Valid = true
 			session.DeletedAt = deletedAt
+			// 保存会话
 			if res := dao.GormDB.Save(&session); res.Error != nil {
 				zlog.Error(res.Error.Error())
 				return constants.SYSTEM_ERROR, -1
@@ -356,6 +370,7 @@ func (uis *UserInfoService) DeleteUsers(req *request.AbleUsersRequest) (string, 
 				return constants.SYSTEM_ERROR, -1
 			}
 		}
+		// 遍历更新联系人
 		for _, contact := range contactList {
 			var deletedAt gorm.DeletedAt
 			deletedAt.Time = time.Now()
@@ -377,6 +392,7 @@ func (uis *UserInfoService) DeleteUsers(req *request.AbleUsersRequest) (string, 
 				return constants.SYSTEM_ERROR, -1
 			}
 		}
+		// 遍历更新申请记录
 		for _, apply := range applyList {
 			var deletedAt gorm.DeletedAt
 			deletedAt.Time = time.Now()
@@ -390,19 +406,21 @@ func (uis *UserInfoService) DeleteUsers(req *request.AbleUsersRequest) (string, 
 
 	}
 	// 删除所有"contact_user_list"开头的key
-	//if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
-	//	zlog.Error(err.Error())
-	//}
+	if err := myredis.DelKeysWithPrefix("contact_user_list"); err != nil {
+		zlog.Error(err.Error())
+	}
 	return "删除用户成功", 0
 }
 
 // SetAdmin 设置管理员
 func (uis *UserInfoService) SetAdmin(req *request.AbleUsersRequest) (string, int) {
 	var users []model.UserInfo
+	// 获取用户信息
 	if res := dao.GormDB.Where("uuid = (?)", req.UuidList).Find(&users); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 遍历更新状态
 	for _, user := range users {
 		user.IsAdmin = req.IsAdmin
 		if res := dao.GormDB.Save(&user); res.Error != nil {
@@ -416,6 +434,7 @@ func (uis *UserInfoService) SetAdmin(req *request.AbleUsersRequest) (string, int
 // SmsLogin 验证码登录
 func (uis *UserInfoService) SmsLogin(req *request.SmsLoginRequest) (string, *respond.LoginRespond, int) {
 	var user model.UserInfo
+	// 查询用户
 	res := dao.GormDB.First(&user, "telephone = ?", req.Telephone)
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
@@ -427,6 +446,7 @@ func (uis *UserInfoService) SmsLogin(req *request.SmsLoginRequest) (string, *res
 		return constants.SYSTEM_ERROR, nil, -1
 	}
 
+	// 验证码校验
 	key := "auth_code_" + req.Telephone
 	code, err := myredis.GetKey(key)
 	if err != nil {
@@ -445,6 +465,7 @@ func (uis *UserInfoService) SmsLogin(req *request.SmsLoginRequest) (string, *res
 		}
 	}
 
+	// 登录成功，返回响应
 	loginRsp := &respond.LoginRespond{
 		Uuid:      user.Uuid,
 		Telephone: user.Telephone,
