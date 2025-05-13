@@ -12,6 +12,7 @@ import (
 
 var GroupInfo = &GroupInfoController{}
 
+// GroupInfoController 群组信息控制器
 type GroupInfoController struct {
 	groupInfoSrv *service.GroupInfoService
 }
