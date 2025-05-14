@@ -23,7 +23,7 @@ auth_code_config:
     template_code: "SMS_154950909"
   
 log_config:
-    log_path: "./logs"
+    log_path: "server/log/logs"
   
 kafka_config:
     message_mode: "channel"# 消息模式 channel or kafka
@@ -35,5 +35,5 @@ kafka_config:
     timeout: 1 # 单位秒
   
 static_src_config:
-    static_avatar_path: "./static/avatars"
-    static_file_path: "./static/files"
+    static_avatar_path: "server/files/avatars"
+    static_file_path: "server/files/files"
