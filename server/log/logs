@@ -1,0 +1,4 @@
+{"level":"info","ts":"2025-05-14T21:03:37.774+0800","msg":"Redis连接成功,pong:PONG","func":"redis.InitRedis","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/lib/redis/redis.go","line":43}
+{"level":"info","ts":"2025-05-14T21:04:11.078+0800","msg":"关闭服务器...","func":"main.main","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/main.go","line":107}
+{"level":"info","ts":"2025-05-14T21:04:11.078+0800","msg":"所有Redis键已删除","func":"main.main","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/main.go","line":113}
+{"level":"info","ts":"2025-05-14T21:04:11.078+0800","msg":"服务器已关闭","func":"main.main","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/main.go","line":116}

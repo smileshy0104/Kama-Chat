@@ -17,7 +17,7 @@ var logger *zap.Logger
 var logPath string
 
 // init 自动调用，用于初始化日志系统
-func init() {
+func InitLogger() {
 	// 创建一个生产环境的编码配置
 	encoderConfig := zap.NewProductionEncoderConfig()
 	// 设置日志记录中时间格式

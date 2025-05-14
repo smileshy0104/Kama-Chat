@@ -25,17 +25,19 @@ func main() {
 	host := conf.MainConfig.Host
 	port := conf.MainConfig.Port
 	kafkaConfig := conf.KafkaConfig
-	// 2. 数据库初始化
+	// 2. 日志初始化
+	zlog.InitLogger()
+	// 3. 数据库初始化
 	dao.InitMysql()
-	// 3. Redis初始化
+	// 4. Redis初始化
 	myredis.InitRedis()
 
-	// 4. kafka初始化
+	// 5. kafka初始化
 	if kafkaConfig.MessageMode == "kafka" {
 		kafka.KafkaService.KafkaInit()
 	}
 
-	// 5. 启动kafka服务
+	// 6. 启动kafka服务
 	if kafkaConfig.MessageMode == "channel" {
 		//go chat.ChatServer.Start()
 	} else {
