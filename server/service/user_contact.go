@@ -255,8 +255,10 @@ func (ucs *UserContactService) DeleteContact(req *request.DeleteContactRequest) 
 
 // ApplyContact 申请添加联系人
 func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (string, int) {
+	// 判断是否为添加用户
 	if req.ContactId[0] == 'U' {
 		var user model.UserInfo
+		// 查询用户信息
 		if res := dao.GormDB.First(&user, "uuid = ?", req.ContactId); res.Error != nil {
 			if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 				zlog.Error("用户不存在")
@@ -272,8 +274,10 @@ func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (s
 			return "用户已被禁用", -2
 		}
 		var contactApply model.ContactApply
+		// 判断是否存在申请记录
 		if res := dao.GormDB.Where("user_id = ? AND contact_id = ?", req.OwnerId, req.ContactId).First(&contactApply); res.Error != nil {
 			if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+				// 创建申请记录
 				contactApply = model.ContactApply{
 					Uuid:        fmt.Sprintf("A%s", random.GetNowAndLenRandomString(11)),
 					UserId:      req.OwnerId,
@@ -298,14 +302,15 @@ func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (s
 		}
 		contactApply.LastApplyAt = time.Now()
 		contactApply.Status = enum.PENDING
-
+		// 更新申请记录
 		if res := dao.GormDB.Save(&contactApply); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
 		return "申请成功", 0
-	} else if req.ContactId[0] == 'G' {
+	} else if req.ContactId[0] == 'G' { // 判断是否为添加群组
 		var group model.GroupInfo
+		// 查询群组信息
 		if res := dao.GormDB.First(&group, "uuid = ?", req.ContactId); res.Error != nil {
 			if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 				zlog.Error("群聊不存在")
@@ -315,10 +320,12 @@ func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (s
 				return constants.SYSTEM_ERROR, -1
 			}
 		}
+		// 判断群聊状态
 		if group.Status == enum.DISABLE {
 			zlog.Info("群聊已被禁用")
 			return "群聊已被禁用", -2
 		}
+		// 判断是否存在申请记录
 		var contactApply model.ContactApply
 		if res := dao.GormDB.Where("user_id = ? AND contact_id = ?", req.OwnerId, req.ContactId).First(&contactApply); res.Error != nil {
 			if errors.Is(res.Error, gorm.ErrRecordNotFound) {
@@ -331,6 +338,7 @@ func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (s
 					Message:     req.Message,
 					LastApplyAt: time.Now(),
 				}
+				// 创建申请记录
 				if res := dao.GormDB.Create(&contactApply); res.Error != nil {
 					zlog.Error(res.Error.Error())
 					return constants.SYSTEM_ERROR, -1
@@ -341,7 +349,7 @@ func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (s
 			}
 		}
 		contactApply.LastApplyAt = time.Now()
-
+		// 如果存在申请记录，先看看有没有被拉黑
 		if res := dao.GormDB.Save(&contactApply); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
@@ -356,6 +364,7 @@ func (ucs *UserContactService) ApplyContact(req *request.ApplyContactRequest) (s
 // GetNewContactList 获取新的联系人申请列表
 func (ucs *UserContactService) GetNewContactList(req *request.OwnlistRequest) (string, []respond.NewContactListRespond, int) {
 	var contactApplyList []model.ContactApply
+	// 查询所有申请记录
 	if res := dao.GormDB.Where("contact_id = ? AND status = ?", req.OwnerId, enum.PENDING).Find(&contactApplyList); res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 			zlog.Info("没有在申请的联系人")
@@ -365,9 +374,11 @@ func (ucs *UserContactService) GetNewContactList(req *request.OwnlistRequest) (s
 			return constants.SYSTEM_ERROR, nil, -1
 		}
 	}
+	// 遍历contactApplyList
 	var rsp []respond.NewContactListRespond
 	// 所有contact都没被删除
 	for _, contactApply := range contactApplyList {
+		// 获取申请理由
 		var message string
 		if contactApply.Message == "" {
 			message = "申请理由：无"
@@ -394,12 +405,15 @@ func (ucs *UserContactService) GetNewContactList(req *request.OwnlistRequest) (s
 func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyRequest) (string, int) {
 	// ownerId 如果是用户的话就是登录用户，如果是群聊的话就是群聊id
 	var contactApply model.ContactApply
+	// 查询申请记录
 	if res := dao.GormDB.Where("contact_id = ? AND user_id = ?", req.OwnerId, req.ContactId).First(&contactApply); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 判断是否为用户申请
 	if req.OwnerId[0] == 'U' {
 		var user model.UserInfo
+		// 查询用户信息
 		if res := dao.GormDB.Where("uuid = ?", req.ContactId).Find(&user); res.Error != nil {
 			zlog.Error(res.Error.Error())
 		}
@@ -407,11 +421,13 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 			zlog.Error("用户已被禁用")
 			return "用户已被禁用", -2
 		}
+		// 更新申请记录
 		contactApply.Status = enum.AGREE
 		if res := dao.GormDB.Save(&contactApply); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
+		// 创建联系人记录
 		newContact := model.UserContact{
 			UserId:      req.OwnerId,
 			ContactId:   req.ContactId,
@@ -424,6 +440,7 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
+		// 创建另一个联系人记录
 		anotherContact := model.UserContact{
 			UserId:      req.ContactId,
 			ContactId:   req.OwnerId,
@@ -436,12 +453,14 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
+		// 删除redis缓存
 		if err := myredis.DelKeysWithPattern("contact_user_list_" + req.OwnerId); err != nil {
 			zlog.Error(err.Error())
 		}
 		return "已添加该联系人", 0
-	} else {
+	} else { // 判断是否为群聊申请
 		var group model.GroupInfo
+		// 查询群聊信息
 		if res := dao.GormDB.Where("uuid = ?", req.OwnerId).Find(&group); res.Error != nil {
 			zlog.Error(res.Error.Error())
 		}
@@ -450,6 +469,7 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 			return "群聊已被禁用", -2
 		}
 		contactApply.Status = enum.AGREE
+		// 更新申请记录
 		if res := dao.GormDB.Save(&contactApply); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
@@ -463,6 +483,7 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 			CreatedAt:   time.Now(),
 			UpdateAt:    time.Now(),
 		}
+		// 创建联系人记录
 		if res := dao.GormDB.Create(&newContact); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
@@ -472,6 +493,7 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 			zlog.Error(err.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
+		// 向群聊中添加该用户
 		members = append(members, req.ContactId)
 		group.MemberCnt = len(members)
 		group.Members, _ = json.Marshal(members)
@@ -479,6 +501,7 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, -1
 		}
+		// 删除redis缓存
 		if err := myredis.DelKeysWithPattern("my_joined_group_list_" + req.OwnerId); err != nil {
 			zlog.Error(err.Error())
 		}
@@ -490,10 +513,12 @@ func (ucs *UserContactService) PassContactApply(req *request.PassContactApplyReq
 func (ucs *UserContactService) RefuseContactApply(req *request.PassContactApplyRequest) (string, int) {
 	// ownerId 如果是用户的话就是登录用户，如果是群聊的话就是群聊id
 	var contactApply model.ContactApply
+	// 查询申请记录
 	if res := dao.GormDB.Where("contact_id = ? AND user_id = ?", req.OwnerId, req.ContactId).First(&contactApply); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 更新申请记录（拒绝）
 	contactApply.Status = enum.REFUSE
 	if res := dao.GormDB.Save(&contactApply); res.Error != nil {
 		zlog.Error(res.Error.Error())
@@ -574,6 +599,7 @@ func (ucs *UserContactService) CancelBlackContact(req *request.BlackContactReque
 // 前端已经判断调用接口的用户是群主，也只有群主才能调用这个接口
 func (ucs *UserContactService) GetAddGroupList(req *request.AddGroupListRequest) (string, []respond.AddGroupListRespond, int) {
 	var contactApplyList []model.ContactApply
+	// 查询申请记录
 	if res := dao.GormDB.Where("contact_id = ? AND status = ?", req.GroupId, enum.PENDING).Find(&contactApplyList); res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 			zlog.Info("没有在申请的联系人")
@@ -583,6 +609,7 @@ func (ucs *UserContactService) GetAddGroupList(req *request.AddGroupListRequest)
 			return constants.SYSTEM_ERROR, nil, -1
 		}
 	}
+	// 遍历申请记录
 	var rsp []respond.AddGroupListRespond
 	for _, contactApply := range contactApplyList {
 		var message string
@@ -596,6 +623,7 @@ func (ucs *UserContactService) GetAddGroupList(req *request.AddGroupListRequest)
 			Message:   message,
 		}
 		var user model.UserInfo
+		// 查询用户信息
 		if res := dao.GormDB.First(&user, "uuid = ?", contactApply.UserId); res.Error != nil {
 			return constants.SYSTEM_ERROR, nil, -1
 		}
