@@ -2,3 +2,14 @@
 {"level":"info","ts":"2025-05-14T21:04:11.078+0800","msg":"关闭服务器...","func":"main.main","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/main.go","line":107}
 {"level":"info","ts":"2025-05-14T21:04:11.078+0800","msg":"所有Redis键已删除","func":"main.main","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/main.go","line":113}
 {"level":"info","ts":"2025-05-14T21:04:11.078+0800","msg":"服务器已关闭","func":"main.main","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/main.go","line":116}
+{"level":"info","ts":"2025-05-14T21:48:11.120+0800","msg":"Redis连接成功,pong:PONG","func":"redis.InitRedis","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/lib/redis/redis.go","line":43}
+{"level":"info","ts":"2025-05-14T21:48:23.142+0800","msg":"没有找到相关前缀key","func":"redis.GetKeyWithPrefixNilIsErr","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/lib/redis/redis.go","line":108}
+{"level":"info","ts":"2025-05-14T21:48:23.149+0800","msg":"redis: nil","func":"service.(*MessageService).GetMessageList","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/service/message.go","line":31}
+{"level":"info","ts":"2025-05-14T21:48:23.149+0800","msg":"U2025051251876639840 U2025051251876639840","func":"service.(*MessageService).GetMessageList","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/service/message.go","line":32}
+{"level":"info","ts":"2025-05-14T21:48:56.110+0800","msg":"没有找到相关前缀key","func":"redis.GetKeyWithPrefixNilIsErr","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/lib/redis/redis.go","line":108}
+{"level":"info","ts":"2025-05-14T21:48:56.115+0800","msg":"redis: nil","func":"service.(*MessageService).GetMessageList","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/service/message.go","line":31}
+{"level":"info","ts":"2025-05-14T21:48:56.115+0800","msg":"U2025051251876639840 U2025051251876639840","func":"service.(*MessageService).GetMessageList","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/service/message.go","line":32}
+{"level":"info","ts":"2025-05-14T21:49:38.977+0800","msg":"没有找到相关前缀key","func":"redis.GetKeyWithPrefixNilIsErr","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/lib/redis/redis.go","line":108}
+{"level":"info","ts":"2025-05-14T21:49:55.560+0800","msg":"U97759254241","func":"service.(*UserInfoService).GetUserInfo","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/service/user_info.go","line":205}
+{"level":"info","ts":"2025-05-14T21:49:55.561+0800","msg":"redis: nil","func":"service.(*UserInfoService).GetUserInfo","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/service/user_info.go","line":210}
+{"level":"info","ts":"2025-05-14T21:49:55.645+0800","msg":"没有找到相关前缀key","func":"redis.GetKeyWithPrefixNilIsErr","file":"/Users/yuyansong/GolandProjects/Kama-Chat/server/lib/redis/redis.go","line":108}

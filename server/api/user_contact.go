@@ -27,7 +27,7 @@ func (ucc *UserContactController) GetUserContactList(c *gin.Context) {
 			"message": constants.SYSTEM_ERROR,
 		})
 	}
-	message, userList, ret := ucc.userContactSrv.GetUserList(req)
+	message, userList, ret := ucc.userContactSrv.GetUserContactList(req)
 	response.JsonBack(c, message, ret, userList)
 }
 

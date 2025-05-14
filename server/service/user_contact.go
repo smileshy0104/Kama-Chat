@@ -24,10 +24,10 @@ type UserContactService struct {
 	Ctx *gin.Context
 }
 
-// GetUserList 获取用户联系人列表
+// GetUserContactList 获取用户联系人列表
 // 该方法根据用户ID获取其联系人列表，首先尝试从Redis缓存中获取数据，
 // 如果缓存不存在，则从数据库中查询并更新缓存。
-func (ucs *UserContactService) GetUserList(req *request.OwnlistRequest) (string, []respond.MyUserListRespond, int) {
+func (ucs *UserContactService) GetUserContactList(req *request.OwnlistRequest) (string, []respond.MyUserListRespond, int) {
 	// 尝试从Redis中获取联系人列表
 	rspString, err := myredis.GetKeyNilIsErr("contact_user_list_" + req.OwnerId)
 	if err != nil {
@@ -85,6 +85,7 @@ func (ucs *UserContactService) GetUserList(req *request.OwnlistRequest) (string,
 
 // LoadMyJoinedGroup 获取我加入的群聊
 func (ucs *UserContactService) LoadMyJoinedGroup(req *request.OwnlistRequest) (string, []respond.LoadMyJoinedGroupRespond, int) {
+	// 从Redis中获取数据
 	rspString, err := myredis.GetKeyNilIsErr("my_joined_group_list_" + req.OwnerId)
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -101,6 +102,7 @@ func (ucs *UserContactService) LoadMyJoinedGroup(req *request.OwnlistRequest) (s
 					return constants.SYSTEM_ERROR, nil, -1
 				}
 			}
+			// 获取群聊信息
 			var groupList []model.GroupInfo
 			for _, contact := range contactList {
 				if contact.ContactId[0] == 'G' {
@@ -117,6 +119,7 @@ func (ucs *UserContactService) LoadMyJoinedGroup(req *request.OwnlistRequest) (s
 					}
 				}
 			}
+			// 转换为响应格式
 			var groupListRsp []respond.LoadMyJoinedGroupRespond
 			for _, group := range groupList {
 				groupListRsp = append(groupListRsp, respond.LoadMyJoinedGroupRespond{
@@ -138,6 +141,7 @@ func (ucs *UserContactService) LoadMyJoinedGroup(req *request.OwnlistRequest) (s
 			return constants.SYSTEM_ERROR, nil, -1
 		}
 	}
+	// 从Redis中获取数据并反序列化为群列表
 	var rsp []respond.LoadMyJoinedGroupRespond
 	if err := json.Unmarshal([]byte(rspString), &rsp); err != nil {
 		zlog.Error(err.Error())
@@ -149,13 +153,15 @@ func (ucs *UserContactService) LoadMyJoinedGroup(req *request.OwnlistRequest) (s
 // 调用这个接口的前提是该联系人没有处在删除或被删除，或者该用户还在群聊中
 // redis todo
 func (ucs *UserContactService) GetContactInfo(req *request.GetContactInfoRequest) (string, respond.GetContactInfoRespond, int) {
+	// 判断是否为群聊
 	if req.ContactId[0] == 'G' {
 		var group model.GroupInfo
+		// 查询群聊信息
 		if res := dao.GormDB.First(&group, "uuid = ?", req.ContactId); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, respond.GetContactInfoRespond{}, -1
 		}
-		// 没被禁用
+		// 判断群聊状态
 		if group.Status != enum.DISABLE {
 			return "获取联系人信息成功", respond.GetContactInfoRespond{
 				ContactId:        group.Uuid,
@@ -172,12 +178,14 @@ func (ucs *UserContactService) GetContactInfo(req *request.GetContactInfoRequest
 			return "该群聊处于禁用状态", respond.GetContactInfoRespond{}, -2
 		}
 	} else {
+		// 查询用户信息
 		var user model.UserInfo
 		if res := dao.GormDB.First(&user, "uuid = ?", req.ContactId); res.Error != nil {
 			zlog.Error(res.Error.Error())
 			return constants.SYSTEM_ERROR, respond.GetContactInfoRespond{}, -1
 		}
 		log.Println(user)
+		// 判断用户状态
 		if user.Status != enum.DISABLE {
 			return "获取联系人信息成功", respond.GetContactInfoRespond{
 				ContactId:        user.Uuid,
@@ -202,6 +210,7 @@ func (ucs *UserContactService) DeleteContact(req *request.DeleteContactRequest) 
 	var deletedAt gorm.DeletedAt
 	deletedAt.Time = time.Now()
 	deletedAt.Valid = true
+	// 更新状态
 	if res := dao.GormDB.Model(&model.UserContact{}).Where("user_id = ? AND contact_id = ?", req.OwnerId, req.ContactId).Updates(map[string]interface{}{
 		"deleted_at": deletedAt,
 		"status":     enum.DELETE,
@@ -209,7 +218,7 @@ func (ucs *UserContactService) DeleteContact(req *request.DeleteContactRequest) 
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
-
+	// 更新状态
 	if res := dao.GormDB.Model(&model.UserContact{}).Where("user_id = ? AND contact_id = ?", req.ContactId, req.OwnerId).Updates(map[string]interface{}{
 		"deleted_at": deletedAt,
 		"status":     enum.BE_DELETE,
@@ -217,12 +226,12 @@ func (ucs *UserContactService) DeleteContact(req *request.DeleteContactRequest) 
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
-
+	// 更新状态
 	if res := dao.GormDB.Model(&model.Session{}).Where("send_id = ? AND receive_id = ?", req.OwnerId, req.ContactId).Update("deleted_at", deletedAt); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
-
+	// 更新状态
 	if res := dao.GormDB.Model(&model.Session{}).Where("send_id = ? AND receive_id = ?", req.ContactId, req.OwnerId).Update("deleted_at", deletedAt); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
@@ -232,10 +241,12 @@ func (ucs *UserContactService) DeleteContact(req *request.DeleteContactRequest) 
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 更新状态
 	if res := dao.GormDB.Model(&model.ContactApply{}).Where("contact_id = ? AND user_id = ?", req.ContactId, req.OwnerId).Update("deleted_at", deletedAt); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 删除redis中联系人列表
 	if err := myredis.DelKeysWithPattern("contact_user_list_" + req.OwnerId); err != nil {
 		zlog.Error(err.Error())
 	}
@@ -599,10 +610,12 @@ func (ucs *UserContactService) GetAddGroupList(req *request.AddGroupListRequest)
 // BlackApply 拉黑申请
 func (ucs *UserContactService) BlackApply(req *request.BlackApplyRequest) (string, int) {
 	var contactApply model.ContactApply
+	// 判断是否已经拉黑
 	if res := dao.GormDB.Where("contact_id = ? AND user_id = ?", req.OwnerId, req.ContactId).First(&contactApply); res.Error != nil {
 		zlog.Error(res.Error.Error())
 		return constants.SYSTEM_ERROR, -1
 	}
+	// 拉黑
 	contactApply.Status = enum.BLACK_
 	if res := dao.GormDB.Save(&contactApply); res.Error != nil {
 		zlog.Error(res.Error.Error())
