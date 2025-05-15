@@ -20,6 +20,7 @@ var chatRooms = make(map[chatRoomKey][]string)
 
 // GetCurContactListInChatRoom 获取当前聊天室联系人列表
 func (crs *ChatRoomService) GetCurContactListInChatRoom(req *request.GetCurContactListInChatRoomRequest) (string, []respond.GetCurContactListInChatRoomRespond, int) {
+	// 获取聊天室联系人列表
 	var rspList []respond.GetCurContactListInChatRoomRespond
 	for _, contactId := range chatRooms[chatRoomKey{req.OwnerId, req.ContactId}] {
 		rspList = append(rspList, respond.GetCurContactListInChatRoomRespond{
