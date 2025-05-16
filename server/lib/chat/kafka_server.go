@@ -22,19 +22,33 @@ import (
 	"time"
 )
 
+// KafkaServer 定义了基于 Kafka 的服务器结构体，用于管理客户端连接以及登录/登出事件。
 type KafkaServer struct {
+	// Clients 存储所有当前连接的客户端，以客户端 UUID 为键，*Client 对象为值。
 	Clients map[string]*Client
-	mutex   *sync.Mutex
-	Login   chan *Client // 登录通道
-	Logout  chan *Client // 退出登录通道
+	// mutex 用于确保对 Clients 映射的并发访问是线程安全的。
+	mutex *sync.Mutex
+	// Login 登录通道，用于通知有新的客户端登录事件。
+	Login chan *Client
+	// Logout 退出登录通道，用于通知有客户端退出登录。
+	Logout chan *Client
 }
 
+// KafkaChatServer 是 KafkaServer 的全局实例，用于管理所有客户端连接。
 var KafkaChatServer *KafkaServer
 
+// kafkaQuit 是一个用于通知 Kafka 服务器退出的通道，用于处理终止信号。
 var kafkaQuit = make(chan os.Signal, 1)
 
-func init() {
+// init函数用于初始化KafkaChatServer实例。
+// 该函数确保在程序启动时，如果KafkaChatServer尚未被初始化，则将其初始化。
+// 这是因为KafkaChatServer可能在整个应用程序中被多个部分使用，而初始化应该只发生一次。
+func InitKafka() {
+	// 检查KafkaChatServer是否已经初始化。
 	if KafkaChatServer == nil {
+		// 如果没有初始化，则创建一个新的KafkaServer实例。
+		// 这包括创建一个空的Clients映射，用于跟踪当前在线的客户端，
+		// 以及初始化用于同步访问的互斥锁和用于通知的通道。
 		KafkaChatServer = &KafkaServer{
 			Clients: make(map[string]*Client),
 			mutex:   &sync.Mutex{},
@@ -42,7 +56,9 @@ func init() {
 			Logout:  make(chan *Client),
 		}
 	}
-	//signal.Notify(kafkaQuit, syscall.SIGINT, syscall.SIGTERM)
+	// 初始化一个信号通知，当接收到中断或终止信号时，kafkaQuit通道将被用来优雅地关闭服务。
+	// 注意：此行代码已被注释掉，可能是因为在当前上下文中不需要信号处理，或者信号处理已经在其他地方实现。
+	// signal.Notify(kafkaQuit, syscall.SIGINT, syscall.SIGTERM)
 }
 
 func (k *KafkaServer) Start() {

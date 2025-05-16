@@ -34,6 +34,8 @@ func main() {
 	myredis.InitRedis()
 
 	// 5. kafka初始化
+	chat.InitKafka()
+	// 5. kafka初始化
 	if kafkaConfig.MessageMode == "kafka" {
 		kafka.KafkaService.KafkaInit()
 	}

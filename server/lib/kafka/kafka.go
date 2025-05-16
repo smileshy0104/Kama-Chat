@@ -4,7 +4,6 @@ import (
 	"Kama-Chat/global"
 	"Kama-Chat/initialize/zlog"
 	"context"
-	"github.com/gin-gonic/gin"
 	"github.com/segmentio/kafka-go"
 	"time"
 )
@@ -17,7 +16,6 @@ type kafkaService struct {
 	ChatWriter *kafka.Writer // ChatWriter 是用于发送消息的 Kafka Writer
 	ChatReader *kafka.Reader // ChatReader 是用于接收消息的 Kafka Reader
 	KafkaConn  *kafka.Conn   // KafkaConn 是用于创建 topic 的 Kafka 连接
-	Ctx        *gin.Context  // Ctx 是 gin 上下文，用于在处理请求时传递上下文信息
 }
 
 // KafkaService 是 kafkaService 类型的全局实例
