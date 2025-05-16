@@ -19,23 +19,27 @@ import (
 	"strconv"
 )
 
+// MessageBack 用于存储回传的消息及其对应的客户端UUID
 type MessageBack struct {
-	Message []byte
-	Uuid    string
+	Message []byte // 消息内容
+	Uuid    string // 客户端UUID
 }
 
+// Client 代表一个客户端连接
 type Client struct {
-	Conn     *websocket.Conn
-	Uuid     string
-	SendTo   chan []byte       // 给server端
-	SendBack chan *MessageBack // 给前端
+	Conn     *websocket.Conn   // WebSocket连接
+	Uuid     string            // 客户端唯一标识UUID
+	SendTo   chan []byte       // 发送给server端的消息通道
+	SendBack chan *MessageBack // 发送给前端的消息通道
 }
 
+// upgrader 用于将HTTP连接升级为WebSocket连接
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  2048,
-	WriteBufferSize: 2048,
+	ReadBufferSize:  2048, // 读缓冲区大小
+	WriteBufferSize: 2048, // 写缓冲区大小
 	// 检查连接的Origin头
 	CheckOrigin: func(r *http.Request) bool {
+		// 允许任何来源的连接请求
 		return true
 	},
 }

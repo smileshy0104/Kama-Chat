@@ -5,6 +5,7 @@ import (
 	"Kama-Chat/global"
 	"Kama-Chat/initialize/dao"
 	"Kama-Chat/initialize/zlog"
+	"Kama-Chat/lib/chat"
 	"Kama-Chat/lib/kafka"
 	myredis "Kama-Chat/lib/redis"
 	"Kama-Chat/router"
@@ -39,9 +40,9 @@ func main() {
 
 	// 6. 启动kafka服务
 	if kafkaConfig.MessageMode == "channel" {
-		//go chat.ChatServer.Start()
+		go chat.ChatServer.Start()
 	} else {
-		//go chat.KafkaChatServer.Start()
+		go chat.KafkaChatServer.Start()
 	}
 
 	go func() {

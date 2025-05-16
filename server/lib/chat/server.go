@@ -21,24 +21,40 @@ import (
 	"time"
 )
 
+// Server 定义聊天服务器的结构体
+// 用于管理客户端连接、消息转发以及客户端登录/登出等操作
 type Server struct {
-	Clients  map[string]*Client
-	mutex    *sync.Mutex
-	Transmit chan []byte  // 转发通道
-	Login    chan *Client // 登录通道
-	Logout   chan *Client // 退出登录通道
+	// Clients 存储所有在线客户端，以客户端 UUID 为键，*Client 对象为值
+	Clients map[string]*Client
+	// mutex 用于保护 Clients 映射的并发访问，确保线程安全
+	mutex *sync.Mutex
+	// Transmit 消息转发通道，用于将接收到的消息广播给所有在线客户端
+	Transmit chan []byte // 转发通道
+	// Login 登录通道，接收新上线的客户端对象，用于添加到在线列表
+	Login chan *Client // 登录通道
+	// Logout 登出通道，接收下线的客户端对象，用于从在线列表中移除
+	Logout chan *Client // 退出登录通道
 }
 
+// ChatServer 是 Server 的全局实例，表示当前运行的聊天服务器
 var ChatServer *Server
 
+// init函数用于初始化ChatServer实例。
+// 当ChatServer实例不存在时，通过创建一个新的Server实例并将其赋值给ChatServer。
+// 这个初始化过程包括：
+// - 创建一个空的Clients字典，用于后续存储客户端信息。
+// - 初始化一个互斥锁mutex，用于在并发环境下保护Clients字典的安全访问。
+// - 创建Transmit、Login和Logout通道，分别用于消息传输、客户端登录和注销的管理。
 func init() {
+	// 如果 ChatServer 尚未初始化，则创建一个新实例
 	if ChatServer == nil {
+		// 创建一个新实例
 		ChatServer = &Server{
-			Clients:  make(map[string]*Client),
-			mutex:    &sync.Mutex{},
-			Transmit: make(chan []byte, constants.CHANNEL_SIZE),
-			Login:    make(chan *Client, constants.CHANNEL_SIZE),
-			Logout:   make(chan *Client, constants.CHANNEL_SIZE),
+			Clients:  make(map[string]*Client),                   // 创建一个空的Clients字典
+			mutex:    &sync.Mutex{},                              // 创建一个互斥锁
+			Transmit: make(chan []byte, constants.CHANNEL_SIZE),  // 创建一个Transmit通道
+			Login:    make(chan *Client, constants.CHANNEL_SIZE), // 创建一个Login通道
+			Logout:   make(chan *Client, constants.CHANNEL_SIZE), // 创建一个Logout通道
 		}
 	}
 }
