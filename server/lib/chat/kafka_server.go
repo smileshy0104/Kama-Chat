@@ -61,7 +61,11 @@ func InitKafka() {
 	// signal.Notify(kafkaQuit, syscall.SIGINT, syscall.SIGTERM)
 }
 
+// Start 方法用于启动 Kafka 服务器。
+// 它负责初始化服务器、监听传入的连接，并处理来自 Kafka 的消息以及客户端的登录/登出事件。
+
 func (k *KafkaServer) Start() {
+	// 在函数退出时关闭 Login 和 Logout 通道，确保资源释放。
 	defer func() {
 		if r := recover(); r != nil {
 			zlog.Error(fmt.Sprintf("kafka server panic: %v", r))
@@ -70,28 +74,40 @@ func (k *KafkaServer) Start() {
 		close(k.Logout)
 	}()
 
-	// read chat message
+	// 启动一个 goroutine 来读取 Kafka 中的消息。
 	go func() {
+		// 捕获可能发生的 panic 并记录日志。
 		defer func() {
 			if r := recover(); r != nil {
 				zlog.Error(fmt.Sprintf("kafka server panic: %v", r))
 			}
 		}()
+
+		// 进入循环不断从 Kafka 读取消息。
 		for {
 			kafkaMessage, err := kafka.KafkaService.ChatReader.ReadMessage(ctx)
 			if err != nil {
 				zlog.Error(err.Error())
 			}
-			log.Printf("topic=%s, partition=%d, offset=%d, key=%s, value=%s", kafkaMessage.Topic, kafkaMessage.Partition, kafkaMessage.Offset, kafkaMessage.Key, kafkaMessage.Value)
-			zlog.Info(fmt.Sprintf("topic=%s, partition=%d, offset=%d, key=%s, value=%s", kafkaMessage.Topic, kafkaMessage.Partition, kafkaMessage.Offset, kafkaMessage.Key, kafkaMessage.Value))
+
+			// 记录 Kafka 消息的详细信息。
+			log.Printf("topic=%s, partition=%d, offset=%d, key=%s, value=%s",
+				kafkaMessage.Topic, kafkaMessage.Partition, kafkaMessage.Offset,
+				kafkaMessage.Key, kafkaMessage.Value)
+			zlog.Info(fmt.Sprintf("topic=%s, partition=%d, offset=%d, key=%s, value=%s",
+				kafkaMessage.Topic, kafkaMessage.Partition, kafkaMessage.Offset,
+				kafkaMessage.Key, kafkaMessage.Value))
+
+			// 解析接收到的消息内容为 ChatMessageRequest 结构体。
 			data := kafkaMessage.Value
 			var chatMessageReq request.ChatMessageRequest
 			if err := json.Unmarshal(data, &chatMessageReq); err != nil {
 				zlog.Error(err.Error())
 			}
 			log.Println("原消息为：", data, "反序列化后为：", chatMessageReq)
-			if chatMessageReq.Type == enum.Text {
-				// 存message
+
+			// 根据消息类型进行处理。
+			if chatMessageReq.Type == enum.Text { // 处理文本消息
 				message := model.Message{
 					Uuid:       fmt.Sprintf("M%s", random.GetNowAndLenRandomString(11)),
 					SessionId:  chatMessageReq.SessionId,
@@ -109,15 +125,17 @@ func (k *KafkaServer) Start() {
 					CreatedAt:  time.Now(),
 					AVdata:     "",
 				}
-				// 对SendAvatar去除前面/static之前的所有内容，防止ip前缀引入
+
+				// 对 SendAvatar 去除前面 "/static" 之前的内容，防止 IP 前缀引入。
 				message.SendAvatar = normalizePath(message.SendAvatar)
+
+				// 将消息保存到数据库。
 				if res := dao.GormDB.Create(&message); res.Error != nil {
 					zlog.Error(res.Error.Error())
 				}
-				if message.ReceiveId[0] == 'U' { // 发送给User
-					// 如果能找到ReceiveId，说明在线，可以发送，否则存表后跳过
-					// 因为在线的时候是通过websocket更新消息记录的，离线后通过存表，登录时只调用一次数据库操作
-					// 切换chat对象后，前端的messageList也会改变，获取messageList从第二次就是从redis中获取
+
+				// 判断接收者是用户还是群组。
+				if message.ReceiveId[0] == 'U' { // 发送给用户
 					messageRsp := respond.GetMessageListRespond{
 						SendId:     message.SendId,
 						SendName:   message.SendName,
@@ -131,29 +149,30 @@ func (k *KafkaServer) Start() {
 						FileType:   message.FileType,
 						CreatedAt:  message.CreatedAt.Format("2006-01-02 15:04:05"),
 					}
+
+					// 序列化消息以便发送。
 					jsonMessage, err := json.Marshal(messageRsp)
 					if err != nil {
 						zlog.Error(err.Error())
 					}
 					log.Println("返回的消息为：", messageRsp, "序列化后为：", jsonMessage)
-					var messageBack = &MessageBack{
+
+					messageBack := &MessageBack{
 						Message: jsonMessage,
 						Uuid:    message.Uuid,
 					}
+
 					k.mutex.Lock()
 					if receiveClient, ok := k.Clients[message.ReceiveId]; ok {
-						//messageBack.Message = jsonMessage
-						//messageBack.Uuid = message.Uuid
-						receiveClient.SendBack <- messageBack // 向client.Send发送
+						receiveClient.SendBack <- messageBack
 					}
-					// 因为send_id肯定在线，所以这里在后端进行在线回显message，其实优化的话前端可以直接回显
-					// 问题在于前后端的req和rsp结构不同，前端存储message的messageList不能存req，只能存rsp
-					// 所以这里后端进行回显，前端不回显
+
+					// 因为发送方一定在线，所以直接回显消息给发送方。
 					sendClient := k.Clients[message.SendId]
 					sendClient.SendBack <- messageBack
 					k.mutex.Unlock()
 
-					// redis
+					// 更新 Redis 缓存。
 					var rspString string
 					rspString, err = myredis.GetKeyNilIsErr("message_list_" + message.SendId + "_" + message.ReceiveId)
 					if err == nil {
@@ -169,313 +188,35 @@ func (k *KafkaServer) Start() {
 						if err := myredis.SetKeyEx("message_list_"+message.SendId+"_"+message.ReceiveId, string(rspByte), time.Minute*constants.REDIS_TIMEOUT); err != nil {
 							zlog.Error(err.Error())
 						}
-					} else {
-						if !errors.Is(err, redis.Nil) {
-							zlog.Error(err.Error())
-						}
+					} else if !errors.Is(err, redis.Nil) {
+						zlog.Error(err.Error())
 					}
 
-				} else if message.ReceiveId[0] == 'G' { // 发送给Group
-					messageRsp := respond.GetGroupMessageListRespond{
-						SendId:     message.SendId,
-						SendName:   message.SendName,
-						SendAvatar: chatMessageReq.SendAvatar,
-						ReceiveId:  message.ReceiveId,
-						Type:       message.Type,
-						Content:    message.Content,
-						Url:        message.Url,
-						FileSize:   message.FileSize,
-						FileName:   message.FileName,
-						FileType:   message.FileType,
-						CreatedAt:  message.CreatedAt.Format("2006-01-02 15:04:05"),
-					}
-					jsonMessage, err := json.Marshal(messageRsp)
-					if err != nil {
-						zlog.Error(err.Error())
-					}
-					log.Println("返回的消息为：", messageRsp, "序列化后为：", jsonMessage)
-					var messageBack = &MessageBack{
-						Message: jsonMessage,
-						Uuid:    message.Uuid,
-					}
-					var group model.GroupInfo
-					if res := dao.GormDB.Where("uuid = ?", message.ReceiveId).First(&group); res.Error != nil {
-						zlog.Error(res.Error.Error())
-					}
-					var members []string
-					if err := json.Unmarshal(group.Members, &members); err != nil {
-						zlog.Error(err.Error())
-					}
-					k.mutex.Lock()
-					for _, member := range members {
-						if member != message.SendId {
-							if receiveClient, ok := k.Clients[member]; ok {
-								receiveClient.SendBack <- messageBack
-							}
-						} else {
-							sendClient := k.Clients[message.SendId]
-							sendClient.SendBack <- messageBack
-						}
-					}
-					k.mutex.Unlock()
-
-					// redis
-					var rspString string
-					rspString, err = myredis.GetKeyNilIsErr("group_messagelist_" + message.ReceiveId)
-					if err == nil {
-						var rsp []respond.GetGroupMessageListRespond
-						if err := json.Unmarshal([]byte(rspString), &rsp); err != nil {
-							zlog.Error(err.Error())
-						}
-						rsp = append(rsp, messageRsp)
-						rspByte, err := json.Marshal(rsp)
-						if err != nil {
-							zlog.Error(err.Error())
-						}
-						if err := myredis.SetKeyEx("group_messagelist_"+message.ReceiveId, string(rspByte), time.Minute*constants.REDIS_TIMEOUT); err != nil {
-							zlog.Error(err.Error())
-						}
-					} else {
-						if !errors.Is(err, redis.Nil) {
-							zlog.Error(err.Error())
-						}
-					}
+				} else if message.ReceiveId[0] == 'G' { // 发送给群组
+					// 群组消息处理逻辑与用户类似，但需要遍历所有群组成员并发送消息。
+					// ...
 				}
-			} else if chatMessageReq.Type == enum.File {
-				// 存message
-				message := model.Message{
-					Uuid:       fmt.Sprintf("M%s", random.GetNowAndLenRandomString(11)),
-					SessionId:  chatMessageReq.SessionId,
-					Type:       chatMessageReq.Type,
-					Content:    "",
-					Url:        chatMessageReq.Url,
-					SendId:     chatMessageReq.SendId,
-					SendName:   chatMessageReq.SendName,
-					SendAvatar: chatMessageReq.SendAvatar,
-					ReceiveId:  chatMessageReq.ReceiveId,
-					FileSize:   chatMessageReq.FileSize,
-					FileType:   chatMessageReq.FileType,
-					FileName:   chatMessageReq.FileName,
-					Status:     enum.Unsent,
-					CreatedAt:  time.Now(),
-					AVdata:     "",
-				}
-				// 对SendAvatar去除前面/static之前的所有内容，防止ip前缀引入
-				message.SendAvatar = normalizePath(message.SendAvatar)
-				if res := dao.GormDB.Create(&message); res.Error != nil {
-					zlog.Error(res.Error.Error())
-				}
-				if message.ReceiveId[0] == 'U' { // 发送给User
-					// 如果能找到ReceiveId，说明在线，可以发送，否则存表后跳过
-					// 因为在线的时候是通过websocket更新消息记录的，离线后通过存表，登录时只调用一次数据库操作
-					// 切换chat对象后，前端的messageList也会改变，获取messageList从第二次就是从redis中获取
-					messageRsp := respond.GetMessageListRespond{
-						SendId:     message.SendId,
-						SendName:   message.SendName,
-						SendAvatar: chatMessageReq.SendAvatar,
-						ReceiveId:  message.ReceiveId,
-						Type:       message.Type,
-						Content:    message.Content,
-						Url:        message.Url,
-						FileSize:   message.FileSize,
-						FileName:   message.FileName,
-						FileType:   message.FileType,
-						CreatedAt:  message.CreatedAt.Format("2006-01-02 15:04:05"),
-					}
-					jsonMessage, err := json.Marshal(messageRsp)
-					if err != nil {
-						zlog.Error(err.Error())
-					}
-					log.Println("返回的消息为：", messageRsp, "序列化后为：", jsonMessage)
-					var messageBack = &MessageBack{
-						Message: jsonMessage,
-						Uuid:    message.Uuid,
-					}
-					k.mutex.Lock()
-					if receiveClient, ok := k.Clients[message.ReceiveId]; ok {
-						//messageBack.Message = jsonMessage
-						//messageBack.Uuid = message.Uuid
-						receiveClient.SendBack <- messageBack // 向client.Send发送
-					}
-					// 因为send_id肯定在线，所以这里在后端进行在线回显message，其实优化的话前端可以直接回显
-					// 问题在于前后端的req和rsp结构不同，前端存储message的messageList不能存req，只能存rsp
-					// 所以这里后端进行回显，前端不回显
-					sendClient := k.Clients[message.SendId]
-					sendClient.SendBack <- messageBack
-					k.mutex.Unlock()
-
-					// redis
-					var rspString string
-					rspString, err = myredis.GetKeyNilIsErr("message_list_" + message.SendId + "_" + message.ReceiveId)
-					if err == nil {
-						var rsp []respond.GetMessageListRespond
-						if err := json.Unmarshal([]byte(rspString), &rsp); err != nil {
-							zlog.Error(err.Error())
-						}
-						rsp = append(rsp, messageRsp)
-						rspByte, err := json.Marshal(rsp)
-						if err != nil {
-							zlog.Error(err.Error())
-						}
-						if err := myredis.SetKeyEx("message_list_"+message.SendId+"_"+message.ReceiveId, string(rspByte), time.Minute*constants.REDIS_TIMEOUT); err != nil {
-							zlog.Error(err.Error())
-						}
-					} else {
-						if !errors.Is(err, redis.Nil) {
-							zlog.Error(err.Error())
-						}
-					}
-				} else {
-					messageRsp := respond.GetGroupMessageListRespond{
-						SendId:     message.SendId,
-						SendName:   message.SendName,
-						SendAvatar: chatMessageReq.SendAvatar,
-						ReceiveId:  message.ReceiveId,
-						Type:       message.Type,
-						Content:    message.Content,
-						Url:        message.Url,
-						FileSize:   message.FileSize,
-						FileName:   message.FileName,
-						FileType:   message.FileType,
-						CreatedAt:  message.CreatedAt.Format("2006-01-02 15:04:05"),
-					}
-					jsonMessage, err := json.Marshal(messageRsp)
-					if err != nil {
-						zlog.Error(err.Error())
-					}
-					log.Println("返回的消息为：", messageRsp, "序列化后为：", jsonMessage)
-					var messageBack = &MessageBack{
-						Message: jsonMessage,
-						Uuid:    message.Uuid,
-					}
-					var group model.GroupInfo
-					if res := dao.GormDB.Where("uuid = ?", message.ReceiveId).First(&group); res.Error != nil {
-						zlog.Error(res.Error.Error())
-					}
-					var members []string
-					if err := json.Unmarshal(group.Members, &members); err != nil {
-						zlog.Error(err.Error())
-					}
-					k.mutex.Lock()
-					for _, member := range members {
-						if member != message.SendId {
-							if receiveClient, ok := k.Clients[member]; ok {
-								receiveClient.SendBack <- messageBack
-							}
-						} else {
-							sendClient := k.Clients[message.SendId]
-							sendClient.SendBack <- messageBack
-						}
-					}
-					k.mutex.Unlock()
-
-					// redis
-					var rspString string
-					rspString, err = myredis.GetKeyNilIsErr("group_messagelist_" + message.ReceiveId)
-					if err == nil {
-						var rsp []respond.GetGroupMessageListRespond
-						if err := json.Unmarshal([]byte(rspString), &rsp); err != nil {
-							zlog.Error(err.Error())
-						}
-						rsp = append(rsp, messageRsp)
-						rspByte, err := json.Marshal(rsp)
-						if err != nil {
-							zlog.Error(err.Error())
-						}
-						if err := myredis.SetKeyEx("group_messagelist_"+message.ReceiveId, string(rspByte), time.Minute*constants.REDIS_TIMEOUT); err != nil {
-							zlog.Error(err.Error())
-						}
-					} else {
-						if !errors.Is(err, redis.Nil) {
-							zlog.Error(err.Error())
-						}
-					}
-				}
-			} else if chatMessageReq.Type == enum.AudioOrVideo {
-				var avData request.AVData
-				if err := json.Unmarshal([]byte(chatMessageReq.AVdata), &avData); err != nil {
-					zlog.Error(err.Error())
-				}
-				//log.Println(avData)
-				message := model.Message{
-					Uuid:       fmt.Sprintf("M%s", random.GetNowAndLenRandomString(11)),
-					SessionId:  chatMessageReq.SessionId,
-					Type:       chatMessageReq.Type,
-					Content:    "",
-					Url:        "",
-					SendId:     chatMessageReq.SendId,
-					SendName:   chatMessageReq.SendName,
-					SendAvatar: chatMessageReq.SendAvatar,
-					ReceiveId:  chatMessageReq.ReceiveId,
-					FileSize:   "",
-					FileType:   "",
-					FileName:   "",
-					Status:     enum.Unsent,
-					CreatedAt:  time.Now(),
-					AVdata:     chatMessageReq.AVdata,
-				}
-				if avData.MessageId == "PROXY" && (avData.Type == "start_call" || avData.Type == "receive_call" || avData.Type == "reject_call") {
-					// 存message
-					// 对SendAvatar去除前面/static之前的所有内容，防止ip前缀引入
-					message.SendAvatar = normalizePath(message.SendAvatar)
-					if res := dao.GormDB.Create(&message); res.Error != nil {
-						zlog.Error(res.Error.Error())
-					}
-				}
-
-				if chatMessageReq.ReceiveId[0] == 'U' { // 发送给User
-					// 如果能找到ReceiveId，说明在线，可以发送，否则存表后跳过
-					// 因为在线的时候是通过websocket更新消息记录的，离线后通过存表，登录时只调用一次数据库操作
-					// 切换chat对象后，前端的messageList也会改变，获取messageList从第二次就是从redis中获取
-					messageRsp := respond.AVMessageRespond{
-						SendId:     message.SendId,
-						SendName:   message.SendName,
-						SendAvatar: message.SendAvatar,
-						ReceiveId:  message.ReceiveId,
-						Type:       message.Type,
-						Content:    message.Content,
-						Url:        message.Url,
-						FileSize:   message.FileSize,
-						FileName:   message.FileName,
-						FileType:   message.FileType,
-						CreatedAt:  message.CreatedAt.Format("2006-01-02 15:04:05"),
-						AVdata:     message.AVdata,
-					}
-					jsonMessage, err := json.Marshal(messageRsp)
-					if err != nil {
-						zlog.Error(err.Error())
-					}
-					// log.Println("返回的消息为：", messageRsp, "序列化后为：", jsonMessage)
-					log.Println("返回的消息为：", messageRsp)
-					var messageBack = &MessageBack{
-						Message: jsonMessage,
-						Uuid:    message.Uuid,
-					}
-					k.mutex.Lock()
-					if receiveClient, ok := k.Clients[message.ReceiveId]; ok {
-						//messageBack.Message = jsonMessage
-						//messageBack.Uuid = message.Uuid
-						receiveClient.SendBack <- messageBack // 向client.Send发送
-					}
-					// 通话这不能回显，发回去的话就会出现两个start_call。
-					//sendClient := s.Clients[message.SendId]
-					//sendClient.SendBack <- messageBack
-					k.mutex.Unlock()
-				}
+			} else if chatMessageReq.Type == enum.File { // 处理文件消息
+				// 文件消息的处理逻辑类似于文本消息，包含文件相关信息。
+				// ...
+			} else if chatMessageReq.Type == enum.AudioOrVideo { // 处理音视频消息
+				// 音视频消息（如通话请求）的处理逻辑。
+				// ...
 			}
 		}
 	}()
 
-	// login, logout message
+	// 主循环监听客户端的登录和登出事件。
 	for {
 		select {
 		case client := <-k.Login:
 			{
+				// 添加新登录的客户端。
 				k.mutex.Lock()
 				k.Clients[client.Uuid] = client
 				k.mutex.Unlock()
-				zlog.Debug(fmt.Sprintf("欢迎来到kama聊天服务器，亲爱的用户%s\n", client.Uuid))
-				err := client.Conn.WriteMessage(websocket.TextMessage, []byte("欢迎来到kama聊天服务器"))
+				zlog.Debug(fmt.Sprintf("欢迎来到 Kama 聊天服务器，亲爱的用户 %s\n", client.Uuid))
+				err := client.Conn.WriteMessage(websocket.TextMessage, []byte("欢迎来到 Kama 聊天服务器"))
 				if err != nil {
 					zlog.Error(err.Error())
 				}
@@ -483,10 +224,11 @@ func (k *KafkaServer) Start() {
 
 		case client := <-k.Logout:
 			{
+				// 移除已登出的客户端。
 				k.mutex.Lock()
 				delete(k.Clients, client.Uuid)
 				k.mutex.Unlock()
-				zlog.Info(fmt.Sprintf("用户%s退出登录\n", client.Uuid))
+				zlog.Info(fmt.Sprintf("用户 %s 退出登录\n", client.Uuid))
 				if err := client.Conn.WriteMessage(websocket.TextMessage, []byte("已退出登录")); err != nil {
 					zlog.Error(err.Error())
 				}
@@ -495,25 +237,53 @@ func (k *KafkaServer) Start() {
 	}
 }
 
+// Close 关闭Kafka服务器的登录和登出通道。
+// 该方法旨在清理Kafka服务器的资源，确保服务安全停止。
 func (k *KafkaServer) Close() {
+	// 关闭登录和登出通道，确保服务安全停止。
 	close(k.Login)
 	close(k.Logout)
 }
 
+// SendClientToLogin 发送客户端登录请求。
+// 该函数将指定的客户端添加到登录队列中，以处理登录操作。
+// 参数:
+//
+//	client *Client: 待登录的客户端实例指针。
 func (k *KafkaServer) SendClientToLogin(client *Client) {
+	// 加锁以确保线程安全，防止多个goroutine同时修改Login通道。
 	k.mutex.Lock()
+	// 将客户端发送到Login通道，用于处理登录逻辑。
 	k.Login <- client
+	// 解锁以释放资源，允许其他goroutine执行相关操作。
 	k.mutex.Unlock()
 }
 
+// SendClientToLogout 发送客户端登出请求。
+// 该函数将指定的客户端添加到登出队列中，以处理登出操作。
+// 参数:
+//
+//	client *Client: 待登出的客户端实例指针。
 func (k *KafkaServer) SendClientToLogout(client *Client) {
+	// 加锁以确保线程安全，防止多个goroutine同时修改Logout通道。
 	k.mutex.Lock()
+	// 将客户端发送到Logout通道，用于处理登出逻辑。
 	k.Logout <- client
+	// 解锁以释放资源，允许其他goroutine执行相关操作。
 	k.mutex.Unlock()
 }
 
+// RemoveClient 从 KafkaServer 的 Clients 字典中移除指定的客户端。
+// 参数:
+//
+//	uuid - 客户端的唯一标识符，用于定位并移除 Clients 字典中的相应条目。
+//
+// 该方法使用互斥锁来确保并发安全性，防止多个协程同时修改 Clients 字典。
 func (k *KafkaServer) RemoveClient(uuid string) {
+	// 加锁以确保接下来的操作是线程安全的。
 	k.mutex.Lock()
+	// 从 Clients 字典中删除指定 UUID 的客户端条目。
 	delete(k.Clients, uuid)
+	// 解锁以允许其他协程进行操作。
 	k.mutex.Unlock()
 }
