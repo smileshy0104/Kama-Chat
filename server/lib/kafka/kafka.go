@@ -4,6 +4,7 @@ import (
 	"Kama-Chat/global"
 	"Kama-Chat/initialize/zlog"
 	"context"
+	"fmt"
 	"github.com/segmentio/kafka-go"
 	"time"
 )
@@ -49,6 +50,7 @@ func (k *kafkaService) KafkaInit() {
 		GroupID:        "chat",                            // 消费者组 ID
 		StartOffset:    kafka.LastOffset,                  // 从最后一条消息开始消费
 	})
+	fmt.Println("Kafka初始化完成")
 }
 
 // KafkaClose 关闭 Kafka 连接
@@ -74,9 +76,19 @@ func (k *kafkaService) CreateTopic() {
 
 	// 连接至任意kafka节点
 	var err error
+
+	// 获取 Controller 节点信息
+	controller, err := k.KafkaConn.Controller()
+	if err != nil {
+		zlog.Error("获取 Controller 失败: " + err.Error())
+		return
+	}
+	fmt.Println("获取 Controller 节点信息成功", controller)
+
 	// 连接至kafka节点
 	k.KafkaConn, err = kafka.Dial("tcp", kafkaConfig.HostPort)
 	if err != nil {
+		fmt.Println("连接至kafka节点失败: ")
 		zlog.Error(err.Error())
 	}
 
@@ -91,6 +103,9 @@ func (k *kafkaService) CreateTopic() {
 
 	// 创建topic
 	if err = k.KafkaConn.CreateTopics(topicConfigs...); err != nil {
+		fmt.Println("创建主题失败: ")
 		zlog.Error(err.Error())
+		return
 	}
+	zlog.Info("创建topic成功")
 }

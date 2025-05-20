@@ -67,9 +67,11 @@ func InitKafka() {
 func (k *KafkaServer) Start() {
 	// 在函数退出时关闭 Login 和 Logout 通道，确保资源释放。
 	defer func() {
+		// 捕获可能发生的 panic 并记录日志。
 		if r := recover(); r != nil {
 			zlog.Error(fmt.Sprintf("kafka server panic: %v", r))
 		}
+		// 关闭 Login 和 Logout 通道，确保资源释放。
 		close(k.Login)
 		close(k.Logout)
 	}()
@@ -85,6 +87,7 @@ func (k *KafkaServer) Start() {
 
 		// 进入循环不断从 Kafka 读取消息。
 		for {
+			// 创建一个上下文，用于控制 Kafka 消费者读取消息的超时时间。
 			kafkaMessage, err := kafka.KafkaService.ChatReader.ReadMessage(ctx)
 			if err != nil {
 				zlog.Error(err.Error())
